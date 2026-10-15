@@ -32,6 +32,19 @@
 .verification-counts span span{padding:0;font-size:12px}
 .page-actions,.export-actions{display:flex;align-items:center;gap:8px}
 .export-button{padding:10px 12px;background:#edf2fc;color:#315fae}
+.import-menu{position:relative}
+.import-button{list-style:none;padding:10px 12px;background:#edf2fc;color:#315fae;cursor:pointer}
+.import-button::-webkit-details-marker{display:none}
+.import-form{position:absolute;z-index:25;top:calc(100% + 8px);right:0;width:270px;display:grid;gap:12px;padding:15px;background:#fff;border:1px solid #dce5ee;border-radius:10px;box-shadow:0 10px 26px #17284226}
+.import-form label{display:grid;gap:7px;color:#52637b;font-size:11px;font-weight:600}
+.import-file-wrap{position:relative;display:block;min-width:0}
+.import-form input[type="file"]{width:100%;padding:7px 38px 7px 7px;border:1px dashed #cbd6e6;border-radius:8px;background:#f8faff;font:11px 'DM Sans';color:#52637b}
+.import-form input[type="file"]::file-selector-button{margin-right:9px;padding:7px 10px;border:0;border-radius:6px;background:#eaf1ff;color:#315fae;font:600 11px 'DM Sans';cursor:pointer;transition:background .15s ease}
+.import-form input[type="file"]::file-selector-button:hover{background:#dbe7ff}
+.remove-import-file{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:25px;height:25px;padding:0;border:0;border-radius:7px;background:#e9eef6;color:#65758b;font:20px/1 'DM Sans';cursor:pointer}
+.remove-import-file:hover{background:#ffe9e7;color:#bd504a}
+.remove-import-file[hidden]{display:none}
+.import-form .primary{width:100%}
 .stack .verification-select{width:100%;border:1px solid #dfe7e1;border-radius:8px;background:#fff;color:#26332b;padding:12px 13px;font:14px 'DM Sans';outline:0}
 .stack .verification-select:focus{border-color:#6b91df;box-shadow:0 0 0 3px #326bd61c}
 .custom-field-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 30px;gap:8px;align-items:center}
@@ -71,6 +84,14 @@ html[data-theme="dark"] .verification-badge.unverified{background:#482926;color:
 html[data-theme="dark"] .verified-count{background:#1d3a2a;color:#8de0aa}
 html[data-theme="dark"] .unverified-count{background:#482926;color:#ffaaa3}
 html[data-theme="dark"] .export-button{background:#233451;color:#bad0ff}
+html[data-theme="dark"] .import-button{background:#233451;color:#bad0ff}
+html[data-theme="dark"] .import-form{background:#151f2e;border-color:#34445c;box-shadow:0 10px 26px #0008}
+html[data-theme="dark"] .import-form label,html[data-theme="dark"] .import-form input[type="file"]{color:#c6d1e2}
+html[data-theme="dark"] .import-form input[type="file"]{background:#101927;border-color:#42536c}
+html[data-theme="dark"] .import-form input[type="file"]::file-selector-button{background:#233451;color:#bad0ff}
+html[data-theme="dark"] .import-form input[type="file"]::file-selector-button:hover{background:#2d4468}
+html[data-theme="dark"] .remove-import-file{background:#233451;color:#bad0ff}
+html[data-theme="dark"] .remove-import-file:hover{background:#482926;color:#ffaaa3}
 html[data-theme="dark"] .stack .verification-select{background:#101927;border-color:#34445c;color:#e7edf8}
 html[data-theme="dark"] .stack .verification-select:focus{border-color:#7198ea;box-shadow:0 0 0 3px #326bd628}
 html[data-theme="dark"] .field-visibility{color:#9bbaff}

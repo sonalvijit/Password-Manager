@@ -3,7 +3,7 @@
 {% block content %}
 <section class="page-heading">
   <div><div class="eyebrow">YOUR PRIVATE SPACE</div><h1>My vault</h1><p class="muted">{{ total_count }} saved {{ 'password' if total_count == 1 else 'passwords' }}{% if query or selected_tag or selected_status %} · {{ entries|length }} shown{% endif %}</p><div class="verification-counts"><span class="verified-count"><span>✓</span>{{ verified_count }} verified {{ 'account' if verified_count == 1 else 'accounts' }}</span><span class="unverified-count"><span>×</span>{{ unverified_count }} unverified {{ 'account' if unverified_count == 1 else 'accounts' }}</span></div></div>
-  <div class="page-actions"><div class="export-actions"><a class="secondary export-button" href="{{ url_for('export_json') }}">↓ JSON</a><a class="secondary export-button" href="{{ url_for('export_csv') }}">↓ CSV</a></div><a class="primary add-button" href="{{ url_for('add_entry') }}"><span class="plus">＋</span> Add password</a></div>
+  <div class="page-actions"><details class="import-menu"><summary class="secondary import-button">↑ Import</summary><form method="post" action="{{ url_for('import_vault') }}" enctype="multipart/form-data" class="import-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>JSON or CSV file<span class="import-file-wrap"><input type="file" name="file" accept=".json,.csv,application/json,text/csv" required><button class="remove-import-file" type="button" aria-label="Remove selected file" title="Remove selected file" hidden>×</button></span></label><button class="primary" type="submit">Import entries</button></form></details><div class="export-actions"><a class="secondary export-button" href="{{ url_for('export_json') }}">↓ JSON</a><a class="secondary export-button" href="{{ url_for('export_csv') }}">↓ CSV</a></div><a class="primary add-button" href="{{ url_for('add_entry') }}"><span class="plus">＋</span> Add password</a></div>
 </section>
 <form class="search" method="get" action="{{ url_for('index') }}">
   <span class="search-icon">⌕</span><input type="search" name="q" value="{{ query }}" placeholder="Search websites, usernames, tags, notes…" aria-label="Search vault">
@@ -26,4 +26,18 @@
 {% else %}
   <section class="empty-state"><div class="empty-icon">⌑</div><h2>{{ 'No matches found' if query or selected_tag or selected_status else 'Your vault is ready' }}</h2><p class="muted">{{ 'Try changing or clearing your filters.' if query or selected_tag or selected_status else 'Add your first password to keep it safely in one place.' }}</p>{% if not query and not selected_tag and not selected_status %}<a class="primary" href="{{ url_for('add_entry') }}">Add your first password <span>→</span></a>{% endif %}</section>
 {% endif %}
+<script>
+  (() => {
+    const fileInput = document.querySelector('.import-form input[type="file"]');
+    const removeButton = document.querySelector('.remove-import-file');
+    if (!fileInput || !removeButton) return;
+    const updateRemoveButton = () => { removeButton.hidden = !fileInput.files.length; };
+    fileInput.addEventListener('change', updateRemoveButton);
+    removeButton.addEventListener('click', () => {
+      fileInput.value = '';
+      updateRemoveButton();
+      fileInput.focus();
+    });
+  })();
+</script>
 {% endblock %}

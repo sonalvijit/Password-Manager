@@ -27,7 +27,7 @@ UNLOCK_LOCK = threading.Lock()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", MAX_CONTENT_LENGTH=10 * 1024 * 1024)
 
 
 def connect_db():
@@ -149,6 +149,140 @@ def safe_http_url(value):
     except ValueError:
         pass
     return ""
+
+
+def import_file_records(upload):
+    filename = (upload.filename or "").lower()
+    content = upload.read().decode("utf-8-sig")
+    if filename.endswith(".json"):
+        data = json.loads(content)
+        if isinstance(data, dict):
+            data = data.get("entries", data.get("passwords", data.get("credentials", [data])))
+    elif filename.endswith(".csv"):
+        data = list(csv.DictReader(io.StringIO(content)))
+    else:
+        raise ValueError("Choose a JSON or CSV file.")
+    if not isinstance(data, list) or any(not isinstance(row, dict) for row in data):
+        raise ValueError("The file must contain a list of password entries.")
+    return data
+
+
+def import_text(value):
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    return str(value)
+
+
+def flatten_import_fields(value, prefix=""):
+    fields = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            label = f"{prefix} / {key}" if prefix else str(key)
+            fields.extend(flatten_import_fields(child, label))
+    elif isinstance(value, list):
+        for index, child in enumerate(value, start=1):
+            label = f"{prefix} / {index}" if prefix else str(index)
+            fields.extend(flatten_import_fields(child, label))
+    elif prefix:
+        fields.append({"name": prefix, "value": import_text(value), "hidden": True})
+    return fields
+
+
+def normalize_import_record(record):
+    normalized = {str(key).strip().casefold().replace(" ", "_"): value for key, value in record.items() if key is not None}
+
+    def first(*keys):
+        for key in keys:
+            value = normalized.get(key)
+            if value is not None and value != "":
+                return value
+        return ""
+
+    site = import_text(first("website", "website_name", "site", "title", "platform", "pltform", "service", "name")).strip()
+    password = import_text(first("password", "pwd", "pass"))
+    if not site or not password.strip():
+        return None
+
+    login_ids = []
+    raw_ids = first("login_ids", "identifiers")
+    if isinstance(raw_ids, str):
+        try:
+            raw_ids = json.loads(raw_ids)
+        except ValueError:
+            raw_ids = [raw_ids]
+    if isinstance(raw_ids, dict):
+        raw_ids = [{"type": kind, "value": value} for kind, value in raw_ids.items()]
+    if not isinstance(raw_ids, list):
+        raw_ids = []
+    for identifier in raw_ids:
+        if isinstance(identifier, dict):
+            kind = import_text(identifier.get("type", "Login ID")).strip() or "Login ID"
+            value = import_text(identifier.get("value", identifier.get("id", ""))).strip()
+        else:
+            kind, value = "Login ID", import_text(identifier).strip()
+        if value:
+            login_ids.append({"type": kind, "value": value})
+    for kind, keys in (("Username", ("username", "user", "login")), ("Email", ("email",)), ("Phone", ("phone", "mobile")), ("ID", ("id", "account_id", "login_id"))):
+        value = import_text(first(*keys)).strip()
+        if value and value.casefold() not in {item["value"].casefold() for item in login_ids}:
+            login_ids.append({"type": kind, "value": value})
+
+    raw_tags = first("tags", "tag")
+    if isinstance(raw_tags, str):
+        try:
+            parsed_tags = json.loads(raw_tags)
+            raw_tags = parsed_tags if isinstance(parsed_tags, list) else raw_tags.split(",")
+        except ValueError:
+            raw_tags = raw_tags.split(",")
+    tags = list(dict.fromkeys(import_text(tag).strip() for tag in raw_tags if import_text(tag).strip())) if isinstance(raw_tags, list) else []
+
+    raw_custom = first("custom_fields", "additional_fields")
+    if isinstance(raw_custom, str):
+        try:
+            raw_custom = json.loads(raw_custom)
+        except ValueError:
+            raw_custom = []
+    custom_fields = []
+    if isinstance(raw_custom, list):
+        for field in raw_custom:
+            if isinstance(field, dict) and field.get("name"):
+                custom_fields.append({
+                    "name": import_text(field["name"]),
+                    "value": import_text(field.get("value", "")),
+                    "hidden": field.get("hidden", True) is not False,
+                })
+    elif isinstance(raw_custom, dict):
+        custom_fields.extend(flatten_import_fields(raw_custom))
+
+    known = {
+        "website", "website_name", "site", "title", "platform", "pltform", "service", "name",
+        "website_url", "site_url", "url", "uri", "login_ids", "identifiers", "username", "user", "login",
+        "email", "phone", "mobile", "id", "account_id", "login_id", "password", "pwd", "pass",
+        "tags", "tag", "notes", "note", "custom_fields", "additional_fields", "verified", "verification_status",
+        "created_at", "updated_at",
+    }
+    for key, value in record.items():
+        normalized_key = str(key).strip().casefold().replace(" ", "_")
+        if normalized_key not in known and value not in (None, ""):
+            custom_fields.extend(flatten_import_fields(value, str(key)))
+
+    verified = first("verified", "verification_status")
+    is_verified = verified is True or (isinstance(verified, str) and verified.casefold() == "verified")
+    return {
+        "site": site,
+        "site_url": import_text(first("website_url", "site_url", "url", "uri")).strip(),
+        "login_ids": login_ids,
+        "username": login_ids[0]["value"] if login_ids else "",
+        "password": password,
+        "tags": tags,
+        "notes": import_text(first("notes", "note")),
+        "custom_fields": custom_fields,
+        "verified": is_verified,
+    }
 
 
 @app.before_request
@@ -465,10 +599,43 @@ def export_csv():
     return response
 
 
+@app.post("/import")
+def import_vault():
+    fernet = require_vault()
+    if not fernet:
+        return redirect(url_for("login"))
+    upload = request.files.get("file")
+    if not upload or not upload.filename:
+        flash("Choose a JSON or CSV file to import.", "error")
+        return redirect(url_for("index"))
+    try:
+        source_records = import_file_records(upload)
+    except (UnicodeDecodeError, json.JSONDecodeError, csv.Error, ValueError):
+        flash("Could not read that file. Choose a valid JSON or CSV password export.", "error")
+        return redirect(url_for("index"))
+    normalized_records = [normalize_import_record(record) for record in source_records]
+    valid_records = [record for record in normalized_records if record is not None]
+    skipped = len(source_records) - len(valid_records)
+    if not valid_records:
+        flash("No valid password entries were found in that file.", "error")
+        return redirect(url_for("index"))
+    encrypted_records = [
+        (fernet.encrypt(json.dumps(record, ensure_ascii=False).encode("utf-8")),)
+        for record in valid_records
+    ]
+    with connect_db() as conn:
+        conn.executemany("INSERT INTO entries(encrypted_data) VALUES(?)", encrypted_records)
+    message = f"Imported {len(valid_records)} {('entry' if len(valid_records) == 1 else 'entries')}."
+    if skipped:
+        message += f" Skipped {skipped} invalid row(s)."
+    flash(message, "success")
+    return redirect(url_for("index"))
+
+
 init_db()
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", "5000"))
+    port = int(os.environ.get("PORT", "54327"))
     url = f"http://127.0.0.1:{port}"
     # Give Flask's development server a moment to bind before opening the page.
     threading.Timer(0.8, lambda: webbrowser.open(url)).start()
