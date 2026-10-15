@@ -1,0 +1,25 @@
+# Python bytecode and tooling caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments and local configuration
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Local password vault and SQLite sidecar files
+passwords.sqlite3
+passwords.sqlite3-*
+instance/
+
+# Plaintext vault exports
+keybox-passwords.json
+keybox-passwords.csv

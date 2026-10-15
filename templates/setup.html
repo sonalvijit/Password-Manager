@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Create vault{% endblock %}
+{% block content %}
+<section class="auth-card">
+  <div class="eyebrow">WELCOME TO KEYBOX</div><h1>Create your vault</h1>
+  <p class="muted">Choose a master password to encrypt and unlock your saved credentials.</p>
+  <form method="post" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Master password<input name="master_password" type="password" minlength="4" autocomplete="new-password" required autofocus></label>
+    <label>Confirm master password<input name="confirm_password" type="password" autocomplete="new-password" required></label>
+    <p class="hint">Use at least 4 characters. There is no password recovery.</p>
+    <button class="primary full" type="submit">Create encrypted vault <span>→</span></button>
+  </form>
+</section>
+{% endblock %}

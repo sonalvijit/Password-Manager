@@ -1,0 +1,25 @@
+html[data-theme="dark"]{color-scheme:dark;background:#0d1420;color:#e7edf8}
+html[data-theme="dark"] body{background:#0d1420;color:#e7edf8}
+html[data-theme="dark"] .topbar{background:#111b2a;border-color:#26354b}
+html[data-theme="dark"] .brand{color:#e5edfa}
+html[data-theme="dark"] .quiet-button,html[data-theme="dark"] .back-link{color:#b5c3d9}
+html[data-theme="dark"] .muted,html[data-theme="dark"] .entry-username,html[data-theme="dark"] .entry-notes{color:#9eacc2}
+html[data-theme="dark"] .search,html[data-theme="dark"] .entry-card,html[data-theme="dark"] .empty-state,html[data-theme="dark"] .auth-card,html[data-theme="dark"] .form-card{background:#151f2e;border-color:#293950;box-shadow:0 5px 18px #0004}
+html[data-theme="dark"] .search input,html[data-theme="dark"] .search select,html[data-theme="dark"] .stack input,html[data-theme="dark"] .stack textarea{background:#101927;border-color:#34445c;color:#e7edf8}
+html[data-theme="dark"] .search input::placeholder{color:#8291a8}
+html[data-theme="dark"] .stack label{color:#c6d1e2}
+html[data-theme="dark"] .stack input:focus,html[data-theme="dark"] .stack textarea:focus{border-color:#7198ea;box-shadow:0 0 0 3px #326bd628}
+html[data-theme="dark"] .site-icon,html[data-theme="dark"] .tag,html[data-theme="dark"] .notice.success{background:#1e2d4a;color:#a9c2ff}
+html[data-theme="dark"] .tag:hover{background:#293e64}
+html[data-theme="dark"] .search button,html[data-theme="dark"] .secondary{background:#233451;color:#bad0ff}
+html[data-theme="dark"] .masked{color:#d5e0f1}
+html[data-theme="dark"] .icon-button{color:#aebbd0}
+html[data-theme="dark"] .icon-button:hover{background:#233451;color:#a9c2ff}
+html[data-theme="dark"] .icon-button.danger:hover,html[data-theme="dark"] .notice.error{color:#ffaaa3;background:#482926}
+html[data-theme="dark"] footer{color:#8291a8}
+html[data-theme="dark"] .hint,html[data-theme="dark"] .optional{color:#93a2b8}
+html[data-theme="dark"] .search-icon{color:#9babc2}
+html[data-theme="dark"] .brand-mark{background:#326bd6}
+html[data-theme="dark"] .eyebrow,html[data-theme="dark"] .reveal,html[data-theme="dark"] .empty-icon{color:#82a9ff}
+.topbar-actions{display:flex;align-items:center;gap:16px}.topbar-actions form{margin:0}
+@media(max-width:480px){.topbar-actions{gap:8px}.topbar-actions .quiet-button{font-size:11px;padding:6px}}

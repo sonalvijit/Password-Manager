@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('index') }}">← Back to vault</a>
+<section class="form-card">
+  <div class="eyebrow">VAULT ENTRY</div><h1>{{ heading }}</h1>
+  <form method="post" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Website or app name
+      <div class="suggestion-autocomplete" data-source="sites"><input id="site-input" name="site" placeholder="e.g. example.com" value="{{ entry.site if entry else '' }}" required autofocus autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="site-suggestions"><div id="site-suggestions" class="suggestions-menu" role="listbox" hidden></div></div>
+    </label>
+    <label>Website URL <span class="optional">Optional</span>
+      <div class="suggestion-autocomplete" data-source="urls"><input id="url-input" name="site_url" type="url" placeholder="https://example.com" value="{{ entry.site_url if entry else '' }}" autocomplete="url" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="url-suggestions"><div id="url-suggestions" class="suggestions-menu" role="listbox" hidden></div></div>
+    </label>
+    <section class="login-identifiers-editor">
+      <div class="login-identifiers-heading"><div><h2>Login identifiers</h2><p class="muted">Add the email, phone, username, or IDs used to sign in.</p></div><button class="add-field" id="add-login-id" type="button">＋ Add ID</button></div>
+      <div class="login-id-rows" id="login-id-rows">
+        {% if entry and entry.login_ids %}
+          {% for identifier in entry.login_ids %}
+          <div class="login-id-row">
+            <input name="login_id_type" aria-label="Identifier type" placeholder="Identifier type (optional)" value="{{ identifier.type or 'Login ID' }}">
+            <div class="suggestion-autocomplete" data-source="usernames"><input id="login-id-{{ loop.index0 }}" name="login_id_value" autocomplete="off" aria-label="Login identifier" placeholder="Email, phone, username, or ID" value="{{ identifier.value }}" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="login-suggestions-{{ loop.index0 }}"><div id="login-suggestions-{{ loop.index0 }}" class="suggestions-menu" role="listbox" hidden></div></div>
+            <button type="button" class="remove-field remove-login-id" aria-label="Remove login ID">×</button>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="login-id-row">
+            <input name="login_id_type" aria-label="Identifier type" placeholder="Identifier type (optional)" value="Login ID">
+            <div class="suggestion-autocomplete" data-source="usernames"><input id="login-id-0" name="login_id_value" autocomplete="off" aria-label="Login identifier" placeholder="Email, phone, username, or ID" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="login-suggestions-0"><div id="login-suggestions-0" class="suggestions-menu" role="listbox" hidden></div></div>
+            <button type="button" class="remove-field remove-login-id" aria-label="Remove login ID">×</button>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+    <label>Password<input name="password" type="password" autocomplete="new-password" value="{{ entry.password if entry else '' }}" required></label>
+    {% if is_edit %}<label>Password verification
+      <span class="optional">Set manually after confirming it works.</span>
+      <select name="verification_status" class="verification-select">
+        <option value="unverified" {% if entry.verified != true and entry.verified != 'verified' and entry.verification_status != 'verified' %}selected{% endif %}>Unverified</option>
+        <option value="verified" {% if entry.verified == true or entry.verified == 'verified' or entry.verification_status == 'verified' %}selected{% endif %}>Verified</option>
+      </select>
+    </label>{% endif %}
+    <label>Tags <span class="optional">Optional · comma separated</span>
+      <div class="suggestion-autocomplete" data-source="tags">
+        <input id="tags-input" name="tags" placeholder="e.g. work, banking, social" autocomplete="off" aria-autocomplete="list" role="combobox" aria-expanded="false" aria-controls="tag-suggestions" value="{% if entry and entry.tags %}{{ entry.tags if entry.tags is string else entry.tags|join(', ') }}{% endif %}">
+        <div id="tag-suggestions" class="suggestions-menu" role="listbox" hidden></div>
+      </div>
+    </label>
+    <label>Notes <span class="optional">Optional</span><textarea name="notes" rows="3">{{ entry.notes if entry else '' }}</textarea></label>
+    <section class="custom-fields-editor">
+      <div class="custom-fields-heading"><div><h2>Additional fields</h2><p class="muted">Add any labels and values this entry needs.</p></div><button class="add-field" id="add-custom-field" type="button">＋ Add field</button></div>
+      <div class="custom-field-rows" id="custom-field-rows">
+        {% if entry and entry.custom_fields %}
+          {% for field in entry.custom_fields %}
+          <div class="custom-field-row">
+            <input name="custom_field_name" aria-label="Field name" placeholder="Field name" value="{{ field.name }}">
+            <div class="custom-value-wrap"><input name="custom_field_value" type="password" autocomplete="new-password" aria-label="Field value" placeholder="Value" value="{{ field.value }}"><button type="button" class="field-visibility" aria-label="Show field value">Show</button></div>
+            <input type="hidden" name="custom_field_hidden" value="{{ '1' if field.hidden is not defined or field.hidden else '0' }}">
+            <label class="field-mask-option"><input class="field-mask-toggle" type="checkbox" {% if field.hidden is not defined or field.hidden %}checked{% endif %}><span>Hide value in vault</span></label>
+            <button type="button" class="remove-field" aria-label="Remove field">×</button>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="custom-field-row">
+            <input name="custom_field_name" aria-label="Field name" placeholder="Field name">
+            <div class="custom-value-wrap"><input name="custom_field_value" type="password" autocomplete="new-password" aria-label="Field value" placeholder="Value"><button type="button" class="field-visibility" aria-label="Show field value">Show</button></div>
+            <input type="hidden" name="custom_field_hidden" value="1">
+            <label class="field-mask-option"><input class="field-mask-toggle" type="checkbox" checked><span>Hide value in vault</span></label>
+            <button type="button" class="remove-field" aria-label="Remove field">×</button>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+    <div class="form-actions"><a class="secondary" href="{{ url_for('index') }}">Cancel</a><button class="primary" type="submit">Save password <span>→</span></button></div>
+  </form>
+</section>
+<script>
+  (() => {
+    const suggestionLists = {
+      sites: {{ existing_sites|tojson }},
+      urls: {{ existing_urls|tojson }},
+      usernames: {{ existing_usernames|tojson }},
+      tags: {{ existing_tags|tojson }}
+    };
+    const attachSuggestionAutocomplete = container => {
+      const input = container.querySelector('input');
+      const menu = container.querySelector('.suggestions-menu');
+      const isTags = container.dataset.source === 'tags';
+      let matches = [];
+      let activeIndex = -1;
+      const hide = () => { menu.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); activeIndex = -1; };
+      const paintActive = () => {
+        [...menu.children].forEach((option, index) => {
+          option.classList.toggle('active', index === activeIndex);
+          option.setAttribute('aria-selected', String(index === activeIndex));
+        });
+        if (activeIndex >= 0) input.setAttribute('aria-activedescendant', menu.children[activeIndex].id);
+        else input.removeAttribute('aria-activedescendant');
+      };
+      const choose = value => {
+        if (isTags) {
+          const parts = input.value.split(',');
+          parts[parts.length - 1] = value;
+          input.value = parts.map(part => part.trim()).join(', ') + ', ';
+        } else input.value = value;
+        hide();
+        input.focus();
+      };
+      const update = () => {
+        const parts = isTags ? input.value.split(',') : [input.value];
+        const current = parts[parts.length - 1].trim();
+        const entered = isTags ? parts.slice(0, -1).map(tag => tag.trim().toLocaleLowerCase()) : [];
+        matches = current ? suggestionLists[container.dataset.source].filter(value =>
+          value.toLocaleLowerCase().startsWith(current.toLocaleLowerCase()) && !entered.includes(value.toLocaleLowerCase())
+        ).slice(0, 8) : [];
+        menu.replaceChildren();
+        activeIndex = -1;
+        matches.forEach((value, index) => {
+          const option = document.createElement('button');
+          option.type = 'button'; option.className = 'suggestion-option'; option.id = `${input.id}-option-${index}`;
+          option.setAttribute('role', 'option'); option.setAttribute('aria-selected', 'false'); option.textContent = value;
+          option.addEventListener('mousedown', event => event.preventDefault());
+          option.addEventListener('click', () => choose(value));
+          menu.appendChild(option);
+        });
+        menu.hidden = matches.length === 0;
+        input.setAttribute('aria-expanded', String(matches.length > 0));
+      };
+      input.addEventListener('input', update);
+      input.addEventListener('focus', update);
+      input.addEventListener('keydown', event => {
+        if (menu.hidden || !matches.length) return;
+        if (event.key === 'ArrowDown') { event.preventDefault(); activeIndex = (activeIndex + 1) % matches.length; paintActive(); }
+        else if (event.key === 'ArrowUp') { event.preventDefault(); activeIndex = activeIndex <= 0 ? matches.length - 1 : activeIndex - 1; paintActive(); }
+        else if (event.key === 'Enter' && activeIndex >= 0) { event.preventDefault(); choose(matches[activeIndex]); }
+        else if (event.key === 'Escape') hide();
+      });
+      document.addEventListener('click', event => { if (!container.contains(event.target)) hide(); });
+    };
+    window.attachSuggestionAutocomplete = attachSuggestionAutocomplete;
+    document.querySelectorAll('.suggestion-autocomplete').forEach(attachSuggestionAutocomplete);
+  })();
+</script>
+<script>
+  (() => {
+    const rows = document.getElementById('login-id-rows');
+    const addButton = document.getElementById('add-login-id');
+    let nextId = rows.querySelectorAll('.login-id-row').length;
+    const addRow = () => {
+      const id = nextId++;
+      const row = document.createElement('div');
+      row.className = 'login-id-row';
+      row.innerHTML = `<input name="login_id_type" aria-label="Identifier type" placeholder="Identifier type (optional)" value="Login ID"><div class="suggestion-autocomplete" data-source="usernames"><input id="login-id-${id}" name="login_id_value" autocomplete="off" aria-label="Login identifier" placeholder="Email, phone, username, or ID" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="login-suggestions-${id}"><div id="login-suggestions-${id}" class="suggestions-menu" role="listbox" hidden></div></div><button type="button" class="remove-field remove-login-id" aria-label="Remove login ID">×</button>`;
+      rows.appendChild(row);
+      window.attachSuggestionAutocomplete(row.querySelector('.suggestion-autocomplete'));
+    };
+    addButton.addEventListener('click', addRow);
+    rows.addEventListener('click', event => {
+      const remove = event.target.closest('.remove-login-id');
+      if (remove) {
+        remove.closest('.login-id-row').remove();
+        if (!rows.children.length) addRow();
+      }
+    });
+  })();
+</script>
+<script>
+  (() => {
+    const rows = document.getElementById('custom-field-rows');
+    const addButton = document.getElementById('add-custom-field');
+    const addRow = () => {
+      const row = document.createElement('div');
+      row.className = 'custom-field-row';
+      row.innerHTML = '<input name="custom_field_name" aria-label="Field name" placeholder="Field name"><div class="custom-value-wrap"><input name="custom_field_value" type="password" autocomplete="new-password" aria-label="Field value" placeholder="Value"><button type="button" class="field-visibility" aria-label="Show field value">Show</button></div><input type="hidden" name="custom_field_hidden" value="1"><label class="field-mask-option"><input class="field-mask-toggle" type="checkbox" checked><span>Hide value in vault</span></label><button type="button" class="remove-field" aria-label="Remove field">×</button>';
+      rows.appendChild(row);
+    };
+    addButton.addEventListener('click', addRow);
+    rows.addEventListener('click', event => {
+      const toggle = event.target.closest('.field-visibility');
+      if (toggle) {
+        const value = toggle.parentElement.querySelector('input');
+        const showing = value.type === 'text';
+        value.type = showing ? 'password' : 'text';
+        toggle.textContent = showing ? 'Show' : 'Hide';
+        return;
+      }
+      const remove = event.target.closest('.remove-field');
+      if (remove) {
+        remove.closest('.custom-field-row').remove();
+        if (!rows.children.length) addRow();
+      }
+    });
+    rows.addEventListener('change', event => {
+      if (event.target.matches('.field-mask-toggle')) {
+        const row = event.target.closest('.custom-field-row');
+        row.querySelector('[name="custom_field_hidden"]').value = event.target.checked ? '1' : '0';
+      }
+    });
+  })();
+</script>
+{% endblock %}

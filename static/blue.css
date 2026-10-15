@@ -1,0 +1,11 @@
+:root{--accent:#326bd6;--accent-hover:#2759b8;--accent-soft:#eaf1ff;--accent-ink:#315fae}
+.brand{color:#243b64}
+.brand-mark,.primary{background:#326bd6}
+.primary:hover{background:#2759b8}
+.eyebrow,.reveal{color:#326bd6}
+.search button,.secondary{background:#edf2fc;color:#315fae}
+.site-icon{background:#eaf1ff;color:#326bd6}
+.tag{background:#eaf1ff;color:#315fae}
+.tag:hover{background:#dbe7ff}
+.stack input:focus,.stack textarea:focus{border-color:#6b91df;box-shadow:0 0 0 3px #326bd61c}
+.notice.success{background:#edf3ff;color:#315fae}

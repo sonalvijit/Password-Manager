@@ -1,0 +1,10 @@
+.search input{background:transparent;box-shadow:none;appearance:none}
+html[data-theme="dark"] .search input{background:transparent;color:#e7edf8}
+.search{gap:12px}
+.search-icon{margin-right:0}
+.search:focus-within{border-color:#83a3e6;box-shadow:0 0 0 3px #326bd619}
+.search select{height:36px;max-width:150px;border:1px solid #dfe6ef;border-radius:8px;background:transparent;color:#52637b;padding:7px 13px;font:12px 'DM Sans';cursor:pointer}
+.search button{border:0;border-radius:7px;background:#326bd6;color:#fff;font:600 12px 'DM Sans';padding:10px 16px;cursor:pointer;transition:background .15s ease}
+.search button:hover{background:#2759b8}
+html[data-theme="dark"] .search:focus-within{border-color:#5278bd;box-shadow:0 0 0 3px #326bd628}
+html[data-theme="dark"] .search select{border-color:#34445c;color:#d4e0f4}

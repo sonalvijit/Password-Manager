@@ -1,0 +1,11 @@
+.entry-card{grid-template-columns:42px minmax(0,1fr) minmax(210px,280px) auto}
+.entry-main,.entry-password{min-width:0}
+.entry-password{grid-template-columns:minmax(0,1fr) auto auto}
+.entry-password .small{grid-column:1/-1}
+.masked{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entry-password .reveal,.copy-password{white-space:nowrap}
+.copy-password{border:0;background:transparent;color:#326bd6;font:600 16px 'DM Sans';cursor:pointer;padding:4px 5px;border-radius:5px}
+.copy-password:hover{background:#eaf1ff}
+html[data-theme="dark"] .copy-password{color:#9bbaff}
+html[data-theme="dark"] .copy-password:hover{background:#233451}
+@media(max-width:650px){.entry-card{grid-template-columns:38px minmax(0,1fr) auto}.entry-password{grid-column:2;grid-row:2}.entry-actions{grid-column:3;grid-row:1}.entry-main{grid-column:2;grid-row:1}}

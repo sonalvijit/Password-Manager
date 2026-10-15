@@ -1,0 +1,8 @@
+.suggestion-autocomplete{position:relative;width:100%}
+.suggestions-menu{position:absolute;z-index:30;top:calc(100% + 5px);left:0;right:0;max-height:210px;overflow:auto;padding:5px;background:#fff;border:1px solid #dce5ee;border-radius:9px;box-shadow:0 8px 22px #1728421c}
+.suggestions-menu[hidden]{display:none}
+.suggestion-option{display:block;width:100%;padding:9px 11px;border:0;border-radius:6px;background:transparent;color:#263b5b;text-align:left;font:13px 'DM Sans';cursor:pointer}
+.suggestion-option:hover,.suggestion-option:focus,.suggestion-option.active{background:#eaf1ff;color:#2759b8;outline:0}
+html[data-theme="dark"] .suggestions-menu{background:#151f2e;border-color:#34445c;box-shadow:0 8px 22px #0007}
+html[data-theme="dark"] .suggestion-option{color:#dbe6f7}
+html[data-theme="dark"] .suggestion-option:hover,html[data-theme="dark"] .suggestion-option:focus,html[data-theme="dark"] .suggestion-option.active{background:#233451;color:#bad0ff}

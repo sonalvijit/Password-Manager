@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Keybox{% endblock %} · Keybox</title>
+  <script>
+    try { if (localStorage.getItem('keybox-theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (_) {}
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='tags.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='blue.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dark.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='search-fix.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='entry-fix.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='tag-suggestions.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='custom-fields.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">K</span> Keybox</a>
+    <div class="topbar-actions">
+      <button class="quiet-button theme-toggle" id="theme-toggle" type="button">Dark theme</button>
+    {% if session.get('vault_token') %}
+      <form method="post" action="{{ url_for('logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="quiet-button" type="submit">Lock vault</button>
+      </form>
+    {% endif %}
+    </div>
+  </header>
+  <main class="shell">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}<div class="notices">{% for category, message in messages %}<div class="notice {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer>Private by design · Your vault is encrypted on this device.</footer>
+  <script>
+    (() => {
+      const button = document.getElementById('theme-toggle');
+      const updateLabel = () => { button.textContent = document.documentElement.dataset.theme === 'dark' ? 'Light theme' : 'Dark theme'; };
+      updateLabel();
+      button.addEventListener('click', () => {
+        const dark = document.documentElement.dataset.theme !== 'dark';
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        try { localStorage.setItem('keybox-theme', dark ? 'dark' : 'light'); } catch (_) {}
+        updateLabel();
+      });
+    })();
+  </script>
+  <script>
+    document.querySelectorAll('.copy-password').forEach(button => {
+      button.addEventListener('click', async () => {
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(button.dataset.password);
+          } else {
+            const helper = document.createElement('textarea');
+            helper.value = button.dataset.password;
+            helper.style.position = 'fixed';
+            helper.style.opacity = '0';
+            document.body.appendChild(helper);
+            helper.select();
+            const copied = document.execCommand('copy');
+            helper.remove();
+            if (!copied) throw new Error('Clipboard copy failed');
+          }
+          button.textContent = '✓';
+          button.title = 'Copied';
+          setTimeout(() => { button.textContent = '⧉'; button.title = 'Copy password'; }, 1400);
+        } catch (_) {
+          button.title = 'Copy unavailable';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

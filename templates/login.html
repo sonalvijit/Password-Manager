@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Unlock vault{% endblock %}
+{% block content %}
+<section class="auth-card">
+  <div class="eyebrow">YOUR PRIVATE SPACE</div><h1>Welcome back</h1>
+  <p class="muted">Enter your master password to unlock your vault.</p>
+  <form method="post" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Master password<input name="master_password" type="password" autocomplete="current-password" required autofocus></label>
+    <button class="primary full" type="submit">Unlock vault <span>→</span></button>
+  </form>
+</section>
+{% endblock %}
