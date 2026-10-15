@@ -2,6 +2,10 @@
 
 A basic local password manager built with Python, Flask, and SQLite. It supports creating a vault, unlocking it, storing a website/app name and optional URL, keeping multiple login identifiers per entry, adding any number of custom fields, manually marking passwords verified or unverified, deleting entries, importing JSON or CSV files, exporting the vault as JSON or CSV, searching websites, URLs, login identifiers, tags, notes, and custom fields, filtering entries by tag, and switching between light and dark themes.
 
+## Screenshot
+
+![Keybox password vault dashboard](img/Screenshot%202026-10-15%20175629.png)
+
 ## Run locally
 
 1. Create and activate a virtual environment.

@@ -50,7 +50,9 @@
     })();
   </script>
   <script>
-    document.querySelectorAll('.copy-password').forEach(button => {
+    document.querySelectorAll('.copy-password, .copy-identifier').forEach(button => {
+      const defaultTitle = button.title;
+      const defaultIcon = button.innerHTML;
       button.addEventListener('click', async () => {
         try {
           if (navigator.clipboard && window.isSecureContext) {
@@ -66,9 +68,9 @@
             helper.remove();
             if (!copied) throw new Error('Clipboard copy failed');
           }
-          button.textContent = '✓';
+          button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
           button.title = 'Copied';
-          setTimeout(() => { button.textContent = '⧉'; button.title = 'Copy password'; }, 1400);
+          setTimeout(() => { button.innerHTML = defaultIcon; button.title = defaultTitle; }, 1400);
         } catch (_) {
           button.title = 'Copy unavailable';
         }

@@ -16,6 +16,10 @@
 .login-id-row .remove-login-id{grid-column:3;grid-row:1}
 .login-id-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
 .login-id-chip{display:inline-flex;align-items:center;gap:5px;max-width:100%;overflow-wrap:anywhere;border-radius:6px;background:#f0f4fa;color:#52637b;padding:4px 7px;font-size:11px}
+.login-id-value{min-width:0;overflow-wrap:anywhere}
+.copy-identifier{display:inline-grid;place-items:center;flex:none;width:20px;height:20px;border:0;border-radius:5px;background:transparent;color:#326bd6;padding:2px;cursor:pointer;transition:background .15s ease,color .15s ease}
+.copy-identifier:hover{background:#e1eaff}
+.entry-username{display:flex;align-items:center;gap:5px}
 .login-id-type{color:#326bd6;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
 .site-title-line{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:5px}
 .site-title-line h2{margin:0}
@@ -76,6 +80,8 @@ html[data-theme="dark"] .custom-field-row>input,html[data-theme="dark"] .custom-
 html[data-theme="dark"] .login-id-row>input{background:#101927;border-color:#34445c;color:#e7edf8}
 html[data-theme="dark"] .login-id-row>input:focus{border-color:#7198ea;box-shadow:0 0 0 3px #326bd628}
 html[data-theme="dark"] .login-id-chip{background:#1e2d4a;color:#d1def5}
+html[data-theme="dark"] .copy-identifier{color:#9bbaff}
+html[data-theme="dark"] .copy-identifier:hover{background:#293e64}
 html[data-theme="dark"] .login-id-type{color:#9bbaff}
 html[data-theme="dark"] .site-url-chip{background:#1e2d4a;color:#a9c2ff}
 html[data-theme="dark"] .site-url-chip[href]:hover{background:#293e64;color:#c4d5ff}

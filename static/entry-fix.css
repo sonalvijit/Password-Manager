@@ -4,7 +4,8 @@
 .entry-password .small{grid-column:1/-1}
 .masked{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .entry-password .reveal,.copy-password{white-space:nowrap}
-.copy-password{border:0;background:transparent;color:#326bd6;font:600 16px 'DM Sans';cursor:pointer;padding:4px 5px;border-radius:5px}
+.copy-password{display:inline-grid;place-items:center;width:30px;height:30px;border:0;background:transparent;color:#326bd6;cursor:pointer;padding:5px;border-radius:7px;transition:background .15s ease,color .15s ease}
+.copy-password svg,.copy-identifier svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .copy-password:hover{background:#eaf1ff}
 html[data-theme="dark"] .copy-password{color:#9bbaff}
 html[data-theme="dark"] .copy-password:hover{background:#233451}
