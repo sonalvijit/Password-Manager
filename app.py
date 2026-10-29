@@ -151,6 +151,49 @@ def safe_http_url(value):
     return ""
 
 
+def site_favicon_url(value):
+    safe_url = safe_http_url(value)
+    if not safe_url:
+        return ""
+    try:
+        parsed = urlsplit(safe_url)
+        if parsed.username or parsed.password or not parsed.hostname:
+            return ""
+        port = parsed.port
+    except ValueError:
+        return ""
+    hostname_value = parsed.hostname.casefold().rstrip(".")
+    if hostname_value == "instagram.com" or hostname_value.endswith(".instagram.com"):
+        return "/static/site-icons/instagram.svg"
+    outlook_hosts = ("outlook.com", "outlook.live.com", "outlook.office.com", "outlook.office365.com", "mail.live.com")
+    if hostname_value in outlook_hosts or hostname_value.endswith(".outlook.com"):
+        return "/static/site-icons/outlook.svg"
+    if hostname_value == "udemy.com" or hostname_value.endswith(".udemy.com"):
+        return "/static/site-icons/udemy.svg"
+    if hostname_value == "stonescape.xyz" or hostname_value.endswith(".stonescape.xyz"):
+        return "/static/site-icons/stonescape.png"
+    local_favicons = {
+        "pokemongo.com": "pokemon-go.ico",
+        "pixiv.net": "pixiv.ico",
+        "myanimelist.net": "myanimelist.ico",
+        "manhwa18.com": "manhwa18.ico",
+        "asurascans.com": "asurascans.ico",
+        "google.com": "google.ico",
+        "steampowered.com": "steam.ico",
+        "steamcommunity.com": "steam.ico",
+        "fiverr.com": "fiverr.ico",
+        "campussoft.net": "campussoft.ico",
+        "discord.com": "discord.ico",
+        "discordapp.com": "discord.ico",
+    }
+    for domain, filename in local_favicons.items():
+        if hostname_value == domain or hostname_value.endswith(f".{domain}"):
+            return f"/static/site-icons/{filename}"
+    hostname = f"[{parsed.hostname}]" if ":" in parsed.hostname else parsed.hostname
+    authority = hostname + (f":{port}" if port else "")
+    return f"{parsed.scheme.lower()}://{authority}/favicon.ico"
+
+
 def import_file_records(upload):
     filename = (upload.filename or "").lower()
     content = upload.read().decode("utf-8-sig")
@@ -204,7 +247,27 @@ def normalize_import_record(record):
 
     site = import_text(first("website", "website_name", "site", "title", "platform", "pltform", "service", "name")).strip()
     password = import_text(first("password", "pwd", "pass"))
-    if not site or not password.strip():
+    raw_password_required = first("password_required", "requires_password")
+    auth_method = import_text(first("auth_method", "authentication_method", "sign_in_method")).strip().casefold().replace("+", "and").replace(" ", "_")
+    if auth_method in ("password", "password_only", "password_required"):
+        auth_method = "password_only"
+    elif auth_method in ("passwordand2fa", "password_and_2fa", "password_and_two_factor", "password_2fa"):
+        auth_method = "password_and_2fa"
+    if isinstance(raw_password_required, bool):
+        password_required = raw_password_required
+    elif str(raw_password_required).strip().casefold() in ("false", "no", "0", "off"):
+        password_required = False
+    elif str(raw_password_required).strip().casefold() in ("true", "yes", "1", "on"):
+        password_required = True
+    elif auth_method in ("2fa_only", "two_factor_only", "2fa", "passwordless", "otp_only"):
+        password_required = False
+    else:
+        password_required = True
+    if not password_required:
+        auth_method = "two_factor_only"
+    elif auth_method != "password_and_2fa":
+        auth_method = "password_only"
+    if not site or (password_required and not password.strip()):
         return None
 
     login_ids = []
@@ -262,6 +325,7 @@ def normalize_import_record(record):
         "website", "website_name", "site", "title", "platform", "pltform", "service", "name",
         "website_url", "site_url", "url", "uri", "login_ids", "identifiers", "username", "user", "login",
         "email", "phone", "mobile", "id", "account_id", "login_id", "password", "pwd", "pass",
+        "password_required", "requires_password", "auth_method", "authentication_method", "sign_in_method",
         "tags", "tag", "notes", "note", "custom_fields", "additional_fields", "verified", "verification_status",
         "created_at", "updated_at",
     }
@@ -278,6 +342,8 @@ def normalize_import_record(record):
         "login_ids": login_ids,
         "username": login_ids[0]["value"] if login_ids else "",
         "password": password,
+        "password_required": password_required,
+        "auth_method": auth_method,
         "tags": tags,
         "notes": import_text(first("notes", "note")),
         "custom_fields": custom_fields,
@@ -315,6 +381,18 @@ def index():
     with connect_db() as conn:
         rows = conn.execute("SELECT id, encrypted_data, updated_at FROM entries ORDER BY updated_at DESC, id DESC").fetchall()
     entries = []
+    search_suggestions = []
+    search_suggestion_keys = set()
+
+    def add_search_suggestion(value, kind):
+        if not isinstance(value, str) or not value.strip() or len(search_suggestions) >= 300:
+            return
+        value = value.strip()
+        key = value.casefold()
+        if key not in search_suggestion_keys:
+            search_suggestion_keys.add(key)
+            search_suggestions.append({"value": value, "kind": kind})
+
     all_tags = set()
     verified_count = 0
     for row in rows:
@@ -330,6 +408,16 @@ def index():
         if not isinstance(item_tags, list):
             item_tags = []
         all_tags.update(tag.strip() for tag in item_tags if isinstance(tag, str) and tag.strip())
+        add_search_suggestion(item.get("site", ""), "Website")
+        add_search_suggestion(item.get("site_url", ""), "URL")
+        for identifier in item.get("login_ids", []):
+            if isinstance(identifier, dict):
+                add_search_suggestion(identifier.get("value", ""), identifier.get("type") or "Login ID")
+        for tag in item_tags:
+            add_search_suggestion(tag, "Tag")
+        for custom_field in item.get("custom_fields", []):
+            if isinstance(custom_field, dict):
+                add_search_suggestion(custom_field.get("name", ""), "Field")
         searchable = [item.get(k, "").casefold() for k in ("site", "username", "notes")]
         searchable.append(item.get("site_url", "").casefold())
         searchable.extend(
@@ -362,6 +450,7 @@ def index():
                 "id": row["id"], **item,
                 "verified": item.get("verified") is True,
                 "site_href": safe_http_url(item.get("site_url", "")),
+                "site_icon_url": site_favicon_url(item.get("site_url", "")),
                 "updated_at": row["updated_at"],
             })
     return render_template(
@@ -374,7 +463,15 @@ def index():
         tags=sorted(all_tags, key=str.casefold),
         selected_tag=request.args.get("tag", ""),
         selected_status=selected_status,
+        search_suggestions=search_suggestions,
     )
+
+
+@app.get("/generator")
+def password_generator():
+    if not require_vault():
+        return redirect(url_for("login"))
+    return render_template("generator.html")
 
 
 @app.route("/setup", methods=["GET", "POST"])
@@ -441,7 +538,11 @@ def logout():
 def save_entry(fernet, values, entry_id=None):
     import json
     payload = {key: values.get(key, "").strip() for key in ("site", "site_url", "username", "notes")}
-    payload["password"] = values.get("password", "")
+    payload["auth_method"] = values.get("auth_method", "password_only")
+    if payload["auth_method"] not in ("password_only", "password_and_2fa", "two_factor_only"):
+        payload["auth_method"] = "password_only"
+    payload["password_required"] = payload["auth_method"] != "two_factor_only"
+    payload["password"] = values.get("password", "") if payload["password_required"] else ""
     payload["verified"] = entry_id is not None and values.get("verification_status") == "verified"
     payload["login_ids"] = get_form_login_ids(values)
     payload["username"] = payload["login_ids"][0]["value"] if payload["login_ids"] else ""
@@ -449,7 +550,7 @@ def save_entry(fernet, values, entry_id=None):
         tag.strip() for tag in values.get("tags", "").split(",") if tag.strip()
     ))
     payload["custom_fields"] = get_form_custom_fields(values)
-    if not payload["site"] or not payload["password"].strip():
+    if not payload["site"] or (payload["password_required"] and not payload["password"].strip()):
         return False
     encrypted = fernet.encrypt(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
     with connect_db() as conn:
@@ -472,9 +573,9 @@ def add_entry():
         return redirect(url_for("login"))
     if request.method == "POST":
         if save_entry(fernet, request.form):
-            flash("Password saved.", "success")
+            flash("Vault entry saved.", "success")
             return redirect(url_for("index"))
-        flash("Website and password are required.", "error")
+        flash("Website name and a password (when required) are needed.", "error")
         entry = dict(request.form)
         entry["custom_fields"] = get_form_custom_fields(request.form)
         entry["tags"] = request.form.get("tags", "").split(",")
@@ -510,9 +611,9 @@ def edit_entry(entry_id):
         entry["login_ids"] = []
     if request.method == "POST":
         if save_entry(fernet, request.form, entry_id):
-            flash("Password updated.", "success")
+            flash("Vault entry updated.", "success")
             return redirect(url_for("index"))
-        flash("Website and password are required.", "error")
+        flash("Website name and a password (when required) are needed.", "error")
         entry = dict(request.form)
         entry["custom_fields"] = get_form_custom_fields(request.form)
         entry["tags"] = request.form.get("tags", "").split(",")
@@ -553,6 +654,8 @@ def decrypted_export_rows(fernet):
             "login_ids": item.get("login_ids", []),
             "username": item.get("username", ""),
             "password": item.get("password", ""),
+            "password_required": item.get("password_required", True),
+            "auth_method": item.get("auth_method", "password_only" if item.get("password_required", True) else "two_factor_only"),
             "tags": item.get("tags", []),
             "notes": item.get("notes", ""),
             "custom_fields": item.get("custom_fields", []),
@@ -582,7 +685,7 @@ def export_csv():
         return redirect(url_for("login"))
     entries = decrypted_export_rows(fernet)
     columns = [
-        "website", "website_url", "login_ids", "username", "password", "tags",
+        "website", "website_url", "login_ids", "username", "password", "password_required", "auth_method", "tags",
         "notes", "custom_fields", "verification_status", "created_at", "updated_at",
     ]
     buffer = io.StringIO(newline="")

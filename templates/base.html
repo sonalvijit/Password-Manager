@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Keybox{% endblock %} · Keybox</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='keybox-icon.svg') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='keybox-icon.svg') }}">
   <script>
     try { if (localStorage.getItem('keybox-theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (_) {}
   </script>
@@ -12,16 +14,22 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='blue.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='dark.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='search-fix.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='search-autocomplete.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='entry-fix.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='tag-suggestions.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='custom-fields.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='generator.css') }}">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">K</span> Keybox</a>
+    <a class="brand" href="{{ url_for('index') }}"><img class="brand-mark" src="{{ url_for('static', filename='keybox-icon.svg') }}" alt=""> Keybox</a>
     <div class="topbar-actions">
-      <button class="quiet-button theme-toggle" id="theme-toggle" type="button">Dark theme</button>
+      <button class="quiet-button theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">
+        <span class="theme-icon sun-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg></span>
+        <span class="theme-icon moon-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.3 15.4A8.5 8.5 0 0 1 8.6 3.7 8.5 8.5 0 1 0 20.3 15.4Z"/></svg></span>
+      </button>
     {% if session.get('vault_token') %}
+      <a class="quiet-button generator-nav" href="{{ url_for('password_generator') }}">Password generator</a>
       <form method="post" action="{{ url_for('logout') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button class="quiet-button" type="submit">Lock vault</button>
@@ -39,11 +47,20 @@
   <script>
     (() => {
       const button = document.getElementById('theme-toggle');
-      const updateLabel = () => { button.textContent = document.documentElement.dataset.theme === 'dark' ? 'Light theme' : 'Dark theme'; };
+      const updateLabel = () => {
+        const label = document.documentElement.dataset.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+        button.setAttribute('aria-label', label);
+        button.title = label;
+      };
       updateLabel();
+      let transitionTimer;
       button.addEventListener('click', () => {
         const dark = document.documentElement.dataset.theme !== 'dark';
-        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        const root = document.documentElement;
+        root.classList.add('theme-transition');
+        root.dataset.theme = dark ? 'dark' : 'light';
+        clearTimeout(transitionTimer);
+        transitionTimer = setTimeout(() => root.classList.remove('theme-transition'), 420);
         try { localStorage.setItem('keybox-theme', dark ? 'dark' : 'light'); } catch (_) {}
         updateLabel();
       });

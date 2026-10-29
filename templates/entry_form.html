@@ -32,14 +32,42 @@
         {% endif %}
       </div>
     </section>
-    <label>Password<input name="password" type="password" autocomplete="new-password" value="{{ entry.password if entry else '' }}" required></label>
-    {% if is_edit %}<label>Password verification
-      <span class="optional">Set manually after confirming it works.</span>
-      <select name="verification_status" class="verification-select">
-        <option value="unverified" {% if entry.verified != true and entry.verified != 'verified' and entry.verification_status != 'verified' %}selected{% endif %}>Unverified</option>
-        <option value="verified" {% if entry.verified == true or entry.verified == 'verified' or entry.verification_status == 'verified' %}selected{% endif %}>Verified</option>
-      </select>
-    </label>{% endif %}
+    {% set selected_auth_method = entry.get('auth_method', '') if entry else 'password_only' %}
+    {% if selected_auth_method not in ['password_only', 'password_and_2fa', 'two_factor_only'] %}
+      {% set selected_auth_method = 'two_factor_only' if entry and entry.get('password_required', true) == false else 'password_only' %}
+    {% endif %}
+    <div class="auth-method-field"><span>Sign-in requirement</span>
+      <div class="auth-method-picker">
+        <button type="button" class="auth-method-trigger" id="auth-method-trigger" role="combobox" aria-label="Sign-in requirement" aria-haspopup="listbox" aria-expanded="false" aria-controls="auth-method-options">
+          <span id="auth-method-label">{% if selected_auth_method == 'password_and_2fa' %}Password + 2FA{% elif selected_auth_method == 'two_factor_only' %}2FA only{% else %}Password only{% endif %}</span>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg>
+        </button>
+        <div class="auth-method-options" id="auth-method-options" role="listbox" aria-label="Sign-in requirement" hidden>
+          <button type="button" class="auth-method-option" role="option" tabindex="-1" data-value="password_only" aria-selected="{{ 'true' if selected_auth_method == 'password_only' else 'false' }}"><span class="auth-option-title">Password only</span><span class="auth-option-detail">Sign in with a password</span><span class="auth-option-check" aria-hidden="true">✓</span></button>
+          <button type="button" class="auth-method-option" role="option" tabindex="-1" data-value="password_and_2fa" aria-selected="{{ 'true' if selected_auth_method == 'password_and_2fa' else 'false' }}"><span class="auth-option-title">Password + 2FA</span><span class="auth-option-detail">Password and a second verification step</span><span class="auth-option-check" aria-hidden="true">✓</span></button>
+          <button type="button" class="auth-method-option" role="option" tabindex="-1" data-value="two_factor_only" aria-selected="{{ 'true' if selected_auth_method == 'two_factor_only' else 'false' }}"><span class="auth-option-title">2FA only</span><span class="auth-option-detail">No password; sign in with a verification code</span><span class="auth-option-check" aria-hidden="true">✓</span></button>
+        </div>
+        <select id="auth-method" name="auth_method" class="auth-method-native" tabindex="-1" aria-hidden="true">
+          <option value="password_only" {% if selected_auth_method == 'password_only' %}selected{% endif %}>Password only</option>
+          <option value="password_and_2fa" {% if selected_auth_method == 'password_and_2fa' %}selected{% endif %}>Password + 2FA</option>
+          <option value="two_factor_only" {% if selected_auth_method == 'two_factor_only' %}selected{% endif %}>2FA only</option>
+        </select>
+      </div>
+    </div>
+    <label>Password<div class="custom-value-wrap password-entry-wrap"><input id="entry-password" name="password" type="password" autocomplete="new-password" value="{{ entry.password if entry else '' }}" required><button type="button" class="field-visibility password-visibility" aria-label="Show password" aria-pressed="false">Show</button></div><span class="optional password-not-required" hidden>No password is used for this sign-in. You can store 2FA details under Additional fields.</span></label>
+    {% if is_edit %}
+      {% set selected_verification = entry.get('verification_status', 'verified' if entry.get('verified') == true else 'unverified') %}
+      <div class="auth-method-field verification-field"><span>Password verification</span><span class="optional">Set manually after confirming it works.</span>
+        <div class="auth-method-picker verification-picker">
+          <button type="button" class="auth-method-trigger" role="combobox" aria-label="Password verification" aria-haspopup="listbox" aria-expanded="false" aria-controls="verification-options"><span class="auth-method-current-label">{{ 'Verified' if selected_verification == 'verified' else 'Unverified' }}</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg></button>
+          <div class="auth-method-options" id="verification-options" role="listbox" aria-label="Password verification" hidden>
+            <button type="button" class="auth-method-option verification-option-unverified" role="option" tabindex="-1" data-value="unverified" aria-selected="{{ 'true' if selected_verification != 'verified' else 'false' }}"><span class="auth-option-title">Unverified</span><span class="auth-option-detail">Not yet confirmed to work</span><span class="auth-option-check" aria-hidden="true">×</span></button>
+            <button type="button" class="auth-method-option verification-option-verified" role="option" tabindex="-1" data-value="verified" aria-selected="{{ 'true' if selected_verification == 'verified' else 'false' }}"><span class="auth-option-title">Verified</span><span class="auth-option-detail">Confirmed to work</span><span class="auth-option-check" aria-hidden="true">✓</span></button>
+          </div>
+          <select id="verification-status" name="verification_status" class="auth-method-native" tabindex="-1" aria-hidden="true"><option value="unverified" {% if selected_verification != 'verified' %}selected{% endif %}>Unverified</option><option value="verified" {% if selected_verification == 'verified' %}selected{% endif %}>Verified</option></select>
+        </div>
+      </div>
+    {% endif %}
     <label>Tags <span class="optional">Optional · comma separated</span>
       <div class="suggestion-autocomplete" data-source="tags">
         <input id="tags-input" name="tags" placeholder="e.g. work, banking, social" autocomplete="off" aria-autocomplete="list" role="combobox" aria-expanded="false" aria-controls="tag-suggestions" value="{% if entry and entry.tags %}{{ entry.tags if entry.tags is string else entry.tags|join(', ') }}{% endif %}">
@@ -139,6 +167,101 @@
     };
     window.attachSuggestionAutocomplete = attachSuggestionAutocomplete;
     document.querySelectorAll('.suggestion-autocomplete').forEach(attachSuggestionAutocomplete);
+  })();
+</script>
+<script>
+  (() => {
+    document.querySelectorAll('.auth-method-picker').forEach(picker => {
+      const trigger = picker.querySelector('.auth-method-trigger');
+      const list = picker.querySelector('.auth-method-options');
+      const select = picker.querySelector('.auth-method-native');
+      const label = picker.querySelector('.auth-method-current-label, #auth-method-label');
+      const options = Array.from(picker.querySelectorAll('.auth-method-option'));
+      let closeTimer;
+      const activeOption = () => options.find(option => option.dataset.value === select.value) || options[0];
+      const close = (returnFocus = false) => {
+        trigger.setAttribute('aria-expanded', 'false');
+        list.classList.remove('is-open');
+        clearTimeout(closeTimer);
+        closeTimer = setTimeout(() => { if (!list.classList.contains('is-open')) list.hidden = true; }, 180);
+        if (returnFocus) trigger.focus();
+      };
+      const open = () => {
+        clearTimeout(closeTimer);
+        list.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+        requestAnimationFrame(() => {
+          list.classList.add('is-open');
+          activeOption().focus();
+        });
+      };
+      const choose = option => {
+        select.value = option.dataset.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        options.forEach(item => item.setAttribute('aria-selected', String(item === option)));
+        label.textContent = option.querySelector('.auth-option-title').textContent;
+        close(true);
+      };
+      trigger.addEventListener('click', () => trigger.getAttribute('aria-expanded') === 'true' ? close() : open());
+      trigger.addEventListener('keydown', event => {
+        if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
+          event.preventDefault();
+          if (trigger.getAttribute('aria-expanded') !== 'true') open();
+          else activeOption().focus();
+        }
+      });
+      options.forEach((option, index) => {
+        option.addEventListener('click', () => choose(option));
+        option.addEventListener('keydown', event => {
+          let nextIndex = index;
+          if (event.key === 'ArrowDown') nextIndex = (index + 1) % options.length;
+          else if (event.key === 'ArrowUp') nextIndex = (index - 1 + options.length) % options.length;
+          else if (event.key === 'Home') nextIndex = 0;
+          else if (event.key === 'End') nextIndex = options.length - 1;
+          else if (event.key === 'Escape') { event.preventDefault(); close(true); return; }
+          else if (event.key === 'Tab') { close(); return; }
+          else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(option); return; }
+          else return;
+          event.preventDefault();
+          options[nextIndex].focus();
+        });
+      });
+      document.addEventListener('click', event => { if (!picker.contains(event.target) && trigger.getAttribute('aria-expanded') === 'true') close(); });
+    });
+  })();
+</script>
+<script>
+  (() => {
+    const input = document.getElementById('entry-password');
+    const toggle = document.querySelector('.password-visibility');
+    const authMethod = document.getElementById('auth-method');
+    const passwordWrap = document.querySelector('.password-entry-wrap');
+    const noPasswordNote = document.querySelector('.password-not-required');
+    if (!input || !toggle || !authMethod) return;
+    const syncPasswordRequirement = () => {
+      const required = authMethod.value !== 'two_factor_only';
+      input.required = required;
+      input.disabled = !required;
+      passwordWrap.hidden = !required;
+      noPasswordNote.hidden = required;
+      if (!required) {
+        input.value = '';
+        input.type = 'password';
+        toggle.textContent = 'Show';
+        toggle.setAttribute('aria-label', 'Show password');
+        toggle.setAttribute('aria-pressed', 'false');
+      }
+    };
+    authMethod.addEventListener('change', syncPasswordRequirement);
+    syncPasswordRequirement();
+    toggle.addEventListener('click', () => {
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      toggle.textContent = showing ? 'Show' : 'Hide';
+      toggle.setAttribute('aria-label', `${showing ? 'Show' : 'Hide'} password`);
+      toggle.setAttribute('aria-pressed', String(!showing));
+      input.focus();
+    });
   })();
 </script>
 <script>

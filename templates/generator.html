@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Password generator{% endblock %}
+{% block content %}
+<a class="back-link generator-back" href="{{ url_for('index') }}">← Back to vault</a>
+<section class="generator-page">
+  <div class="eyebrow">KEYBOX TOOL</div>
+  <h1>Password generator</h1>
+  <p class="muted generator-intro">Create a random password with the length and character types you choose.</p>
+
+  <section class="generator-card" aria-label="Password generator settings">
+    <div class="generator-length-heading"><label for="password-length">Password length</label><output id="password-length-value" for="password-length">20</output></div>
+    <input id="password-length" class="generator-range" type="range" min="8" max="64" value="20">
+    <div class="generator-range-labels"><span>8 characters</span><span>64 characters</span></div>
+
+    <fieldset class="generator-character-options">
+      <legend>Include characters</legend>
+      <label class="generator-option"><input type="checkbox" data-character-set="uppercase" checked><span class="option-check" aria-hidden="true">✓</span><span>Uppercase <small>A–Z</small></span></label>
+      <label class="generator-option"><input type="checkbox" data-character-set="lowercase" checked><span class="option-check" aria-hidden="true">✓</span><span>Lowercase <small>a–z</small></span></label>
+      <label class="generator-option"><input type="checkbox" data-character-set="numbers" checked><span class="option-check" aria-hidden="true">✓</span><span>Numbers <small>0–9</small></span></label>
+      <label class="generator-option"><input type="checkbox" data-character-set="symbols" checked><span class="option-check" aria-hidden="true">✓</span><span>Symbols <small>!@#$…</small></span></label>
+    </fieldset>
+
+    <div class="generated-result">
+      <label for="generated-password">Generated password</label>
+      <div class="generated-result-control"><input id="generated-password" type="text" readonly placeholder="Click Generate password" autocomplete="off" spellcheck="false"><button id="copy-generated-password" type="button" aria-label="Copy generated password" title="Copy generated password" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button></div>
+    </div>
+    <button class="primary generator-submit" id="generate-password" type="button"><span aria-hidden="true">✦</span> Generate password</button>
+    <p class="generator-message" id="generator-message" role="status" aria-live="polite"></p>
+    <p class="generator-privacy">Generated in your browser; it is not saved to the vault unless you copy it into an entry.</p>
+  </section>
+</section>
+<script>
+  (() => {
+    const lengthInput = document.getElementById('password-length');
+    const lengthOutput = document.getElementById('password-length-value');
+    const generatedInput = document.getElementById('generated-password');
+    const generateButton = document.getElementById('generate-password');
+    const copyButton = document.getElementById('copy-generated-password');
+    const message = document.getElementById('generator-message');
+    const setInputs = Array.from(document.querySelectorAll('[data-character-set]'));
+    const characterGroups = {
+      uppercase: 'ABCDEFGHJKLMNPQRSTUVWXYZ',
+      lowercase: 'abcdefghijkmnopqrstuvwxyz',
+      numbers: '23456789',
+      symbols: '!@#$%^&*()-_=+[]{}?'
+    };
+    const secureIndex = max => {
+      const limit = Math.floor(0x100000000 / max) * max;
+      const random = new Uint32Array(1);
+      do { window.crypto.getRandomValues(random); } while (random[0] >= limit);
+      return random[0] % max;
+    };
+    const activeGroups = () => setInputs.filter(input => input.checked).map(input => characterGroups[input.dataset.characterSet]);
+    const updateOptions = () => {
+      const selected = activeGroups();
+      generateButton.disabled = selected.length === 0;
+      if (!selected.length) message.textContent = 'Choose at least one character type.';
+      else if (message.textContent === 'Choose at least one character type.') message.textContent = '';
+    };
+    lengthInput.addEventListener('input', () => { lengthOutput.value = lengthInput.value; lengthOutput.textContent = lengthInput.value; });
+    setInputs.forEach(input => input.addEventListener('change', updateOptions));
+    generateButton.addEventListener('click', () => {
+      if (!window.crypto || !window.crypto.getRandomValues) {
+        message.textContent = 'Secure generation is unavailable in this browser.';
+        return;
+      }
+      const groups = activeGroups();
+      if (!groups.length) { updateOptions(); return; }
+      const alphabet = groups.join('');
+      const length = Number(lengthInput.value);
+      const characters = groups.map(group => group[secureIndex(group.length)]);
+      while (characters.length < length) characters.push(alphabet[secureIndex(alphabet.length)]);
+      for (let index = characters.length - 1; index > 0; index--) {
+        const other = secureIndex(index + 1);
+        [characters[index], characters[other]] = [characters[other], characters[index]];
+      }
+      generatedInput.value = characters.join('');
+      copyButton.disabled = false;
+      message.textContent = `Generated a ${length}-character password.`;
+    });
+    copyButton.addEventListener('click', async () => {
+      try {
+        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(generatedInput.value);
+        else {
+          generatedInput.select();
+          if (!document.execCommand('copy')) throw new Error('Copy failed');
+          generatedInput.setSelectionRange(0, 0);
+        }
+        message.textContent = 'Password copied to clipboard.';
+        copyButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
+        copyButton.title = 'Copied';
+        setTimeout(() => {
+          copyButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>';
+          copyButton.title = 'Copy generated password';
+        }, 1300);
+      } catch (_) { message.textContent = 'Could not copy the password.'; }
+    });
+    updateOptions();
+  })();
+</script>
+{% endblock %}
