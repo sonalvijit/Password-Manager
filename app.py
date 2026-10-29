@@ -173,6 +173,21 @@ def site_favicon_url(value):
     if hostname_value == "stonescape.xyz" or hostname_value.endswith(".stonescape.xyz"):
         return "/static/site-icons/stonescape.png"
     local_favicons = {
+        "hacker101.com": "hackerone.svg",
+        "hackerone.com": "hackerone.svg",
+        "riotgames.com": "riotgames.svg",
+        "comix.to": "comix.svg",
+        "mangafire.to": "mangafire.svg",
+        "bsky.app": "bluesky.svg",
+        "bsky.social": "bluesky.svg",
+        "ea.com": "ea.svg",
+        "electronicarts.com": "ea.svg",
+        "digilocker.gov.in": "digilocker.svg",
+        "digitallocker.gov.in": "digilocker.svg",
+        "zerodha.com": "zerodha.svg",
+        "postman.com": "postman.svg",
+        "shodan.io": "shodan.svg",
+        "hackingflix.com": "hackingflix.svg",
         "pokemongo.com": "pokemon-go.ico",
         "pixiv.net": "pixiv.ico",
         "myanimelist.net": "myanimelist.ico",
@@ -253,7 +268,13 @@ def normalize_import_record(record):
         auth_method = "password_only"
     elif auth_method in ("passwordand2fa", "password_and_2fa", "password_and_two_factor", "password_2fa"):
         auth_method = "password_and_2fa"
-    if isinstance(raw_password_required, bool):
+    elif auth_method in ("google", "google_sign_in", "sign_in_with_google", "google_sso", "sso_google"):
+        auth_method = "google_sign_in"
+    elif auth_method in ("mobile_otp", "mobile_number_otp", "phone_otp", "phone_number_otp", "sms_otp", "otp_mobile"):
+        auth_method = "mobile_otp"
+    if auth_method in ("google_sign_in", "mobile_otp"):
+        password_required = False
+    elif isinstance(raw_password_required, bool):
         password_required = raw_password_required
     elif str(raw_password_required).strip().casefold() in ("false", "no", "0", "off"):
         password_required = False
@@ -263,9 +284,9 @@ def normalize_import_record(record):
         password_required = False
     else:
         password_required = True
-    if not password_required:
+    if not password_required and auth_method not in ("google_sign_in", "mobile_otp"):
         auth_method = "two_factor_only"
-    elif auth_method != "password_and_2fa":
+    elif password_required and auth_method not in ("password_and_2fa", "google_sign_in", "mobile_otp"):
         auth_method = "password_only"
     if not site or (password_required and not password.strip()):
         return None
@@ -378,6 +399,9 @@ def index():
     query = request.args.get("q", "").strip().casefold()
     selected_tag = request.args.get("tag", "").strip().casefold()
     selected_status = request.args.get("status", "").strip().casefold()
+    selected_website = request.args.get("website", "").strip().casefold()
+    if selected_website not in {"with_url", "without_url"}:
+        selected_website = ""
     with connect_db() as conn:
         rows = conn.execute("SELECT id, encrypted_data, updated_at FROM entries ORDER BY updated_at DESC, id DESC").fetchall()
     entries = []
@@ -445,7 +469,12 @@ def index():
         status_matches = not selected_status or (selected_status == "verified" and verified) or (
             selected_status == "unverified" and not verified
         )
-        if query_matches and tag_matches and status_matches:
+        site_url = item.get("site_url", "")
+        has_website_url = isinstance(site_url, str) and bool(site_url.strip())
+        website_matches = not selected_website or (
+            selected_website == "with_url" and has_website_url
+        ) or (selected_website == "without_url" and not has_website_url)
+        if query_matches and tag_matches and status_matches and website_matches:
             entries.append({
                 "id": row["id"], **item,
                 "verified": item.get("verified") is True,
@@ -463,6 +492,7 @@ def index():
         tags=sorted(all_tags, key=str.casefold),
         selected_tag=request.args.get("tag", ""),
         selected_status=selected_status,
+        selected_website=selected_website,
         search_suggestions=search_suggestions,
     )
 
@@ -471,7 +501,7 @@ def index():
 def password_generator():
     if not require_vault():
         return redirect(url_for("login"))
-    return render_template("generator.html")
+    return redirect(url_for("index"))
 
 
 @app.route("/setup", methods=["GET", "POST"])
@@ -539,9 +569,9 @@ def save_entry(fernet, values, entry_id=None):
     import json
     payload = {key: values.get(key, "").strip() for key in ("site", "site_url", "username", "notes")}
     payload["auth_method"] = values.get("auth_method", "password_only")
-    if payload["auth_method"] not in ("password_only", "password_and_2fa", "two_factor_only"):
+    if payload["auth_method"] not in ("password_only", "password_and_2fa", "two_factor_only", "google_sign_in", "mobile_otp"):
         payload["auth_method"] = "password_only"
-    payload["password_required"] = payload["auth_method"] != "two_factor_only"
+    payload["password_required"] = payload["auth_method"] in ("password_only", "password_and_2fa")
     payload["password"] = values.get("password", "") if payload["password_required"] else ""
     payload["verified"] = entry_id is not None and values.get("verification_status") == "verified"
     payload["login_ids"] = get_form_login_ids(values)

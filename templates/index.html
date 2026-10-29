@@ -2,30 +2,247 @@
 {% block title %}My vault{% endblock %}
 {% block content %}
 <section class="page-heading">
-  <div><div class="eyebrow">YOUR PRIVATE SPACE</div><h1>My vault</h1><p class="muted">{{ total_count }} saved {{ 'entry' if total_count == 1 else 'entries' }}{% if query or selected_tag or selected_status %} · {{ entries|length }} shown{% endif %}</p><div class="verification-counts"><span class="verified-count"><span>✓</span>{{ verified_count }} verified {{ 'account' if verified_count == 1 else 'accounts' }}</span><span class="unverified-count"><span>×</span>{{ unverified_count }} unverified {{ 'account' if unverified_count == 1 else 'accounts' }}</span></div></div>
-  <div class="page-actions"><details class="import-menu"><summary class="secondary import-button">↑ Import</summary><form method="post" action="{{ url_for('import_vault') }}" enctype="multipart/form-data" class="import-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>JSON or CSV file<span class="import-file-wrap"><input type="file" name="file" accept=".json,.csv,application/json,text/csv" required><button class="remove-import-file" type="button" aria-label="Remove selected file" title="Remove selected file" hidden>×</button></span></label><button class="primary" type="submit">Import entries</button></form></details><div class="export-actions"><a class="secondary export-button" href="{{ url_for('export_json') }}">↓ JSON</a><a class="secondary export-button" href="{{ url_for('export_csv') }}">↓ CSV</a></div><a class="primary add-button" href="{{ url_for('add_entry') }}"><span class="plus">＋</span> Add password</a></div>
+  <div><div class="eyebrow">YOUR PRIVATE SPACE</div><h1>My vault</h1><p class="muted">{{ total_count }} saved {{ 'entry' if total_count == 1 else 'entries' }}{% if query or selected_tag or selected_status or selected_website %} · {{ entries|length }} shown{% endif %}</p>{% if query %}<div class="search-query-indicator" title="Search keyword: {{ query }}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><span>Searched for <strong>{{ query }}</strong></span></div>{% endif %}<div class="verification-counts"><span class="verified-count"><span>✓</span>{{ verified_count }} verified {{ 'account' if verified_count == 1 else 'accounts' }}</span><span class="unverified-count"><span>×</span>{{ unverified_count }} unverified {{ 'account' if unverified_count == 1 else 'accounts' }}</span></div></div>
+  <div class="page-actions"><button class="secondary open-search-dialog" id="open-search-dialog" type="button" aria-haspopup="dialog" aria-controls="search-dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><span>Search</span><kbd>Ctrl S</kbd></button><details class="import-menu"><summary class="secondary import-button">↑ Import</summary><form method="post" action="{{ url_for('import_vault') }}" enctype="multipart/form-data" class="import-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>JSON or CSV file<span class="import-file-wrap"><input type="file" name="file" accept=".json,.csv,application/json,text/csv" required><button class="remove-import-file" type="button" aria-label="Remove selected file" title="Remove selected file" hidden>×</button></span></label><button class="primary" type="submit">Import entries</button></form></details><div class="export-actions"><a class="secondary export-button" href="{{ url_for('export_json') }}">↓ JSON</a><a class="secondary export-button" href="{{ url_for('export_csv') }}">↓ CSV</a></div><a class="primary add-button" href="{{ url_for('add_entry') }}"><span class="plus">＋</span> Add password</a></div>
 </section>
+<dialog class="search-dialog" id="search-dialog" aria-labelledby="search-dialog-title">
+  <div class="search-dialog-heading"><div><div class="eyebrow">QUICK SEARCH</div><h2 id="search-dialog-title">Find in your vault</h2></div><button type="button" class="search-dialog-close" aria-label="Close search">×</button></div>
 <form class="search" method="get" action="{{ url_for('index') }}">
   <div class="search-input-wrap"><span class="search-icon" aria-hidden="true">⌕</span><input id="vault-search" type="search" name="q" value="{{ query }}" placeholder="Search websites, usernames, tags, notes…" aria-label="Search vault" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-suggestions"><div class="search-suggestions" id="search-suggestions" role="listbox" aria-label="Vault suggestions" hidden></div></div>
-  {% if tags %}<select name="tag" aria-label="Filter by tag"><option value="">All tags</option>{% for tag in tags %}<option value="{{ tag }}" {% if selected_tag|lower == tag|lower %}selected{% endif %}>{{ tag }}</option>{% endfor %}</select>{% endif %}
-  <select name="status" aria-label="Filter by verification status"><option value="">All statuses</option><option value="verified" {% if selected_status == 'verified' %}selected{% endif %}>Verified</option><option value="unverified" {% if selected_status == 'unverified' %}selected{% endif %}>Unverified</option></select>
+  {% if tags %}<div class="filter-picker tag-filter-picker">
+    <button type="button" class="filter-trigger" role="combobox" aria-label="Filter by tag" aria-haspopup="listbox" aria-expanded="false" aria-controls="tag-filter-options"><span class="filter-current-label">{{ selected_tag if selected_tag else 'All tags' }}</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg></button>
+    <div class="filter-options" id="tag-filter-options" role="listbox" aria-label="Filter by tag" hidden>
+      <button type="button" class="filter-option" role="option" tabindex="-1" data-value="" aria-selected="{{ 'true' if not selected_tag else 'false' }}"><span>All tags</span><span class="filter-option-check" aria-hidden="true">✓</span></button>
+      {% for tag in tags %}<button type="button" class="filter-option" role="option" tabindex="-1" data-value="{{ tag }}" aria-selected="{{ 'true' if selected_tag|lower == tag|lower else 'false' }}"><span>{{ tag }}</span><span class="filter-option-check" aria-hidden="true">✓</span></button>{% endfor %}
+    </div>
+    <select class="auth-method-native" name="tag" tabindex="-1" aria-hidden="true"><option value="" {% if not selected_tag %}selected{% endif %}>All tags</option>{% for tag in tags %}<option value="{{ tag }}" {% if selected_tag|lower == tag|lower %}selected{% endif %}>{{ tag }}</option>{% endfor %}</select>
+  </div>{% endif %}
+  <div class="filter-picker status-filter-picker">
+    <button type="button" class="filter-trigger" role="combobox" aria-label="Filter by verification status" aria-haspopup="listbox" aria-expanded="false" aria-controls="status-filter-options"><span class="filter-current-label">{{ selected_status|capitalize if selected_status else 'All statuses' }}</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg></button>
+    <div class="filter-options" id="status-filter-options" role="listbox" aria-label="Filter by verification status" hidden>
+      <button type="button" class="filter-option" role="option" tabindex="-1" data-value="" aria-selected="{{ 'true' if not selected_status else 'false' }}"><span>All statuses</span><span class="filter-option-check" aria-hidden="true">✓</span></button>
+      <button type="button" class="filter-option" role="option" tabindex="-1" data-value="verified" aria-selected="{{ 'true' if selected_status == 'verified' else 'false' }}"><span>Verified</span><span class="filter-option-check" aria-hidden="true">✓</span></button>
+      <button type="button" class="filter-option" role="option" tabindex="-1" data-value="unverified" aria-selected="{{ 'true' if selected_status == 'unverified' else 'false' }}"><span>Unverified</span><span class="filter-option-check" aria-hidden="true">✓</span></button>
+    </div>
+    <select class="auth-method-native" name="status" tabindex="-1" aria-hidden="true"><option value="" {% if not selected_status %}selected{% endif %}>All statuses</option><option value="verified" {% if selected_status == 'verified' %}selected{% endif %}>Verified</option><option value="unverified" {% if selected_status == 'unverified' %}selected{% endif %}>Unverified</option></select>
+  </div>
+  <div class="filter-picker website-filter-picker">
+    <button type="button" class="filter-trigger" role="combobox" aria-label="URL included" aria-haspopup="listbox" aria-expanded="false" aria-controls="website-filter-options"><span class="filter-current-label" data-prefix="URL included: ">URL included: {% if selected_website == 'with_url' %}Yes{% elif selected_website == 'without_url' %}No{% else %}All{% endif %}</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg></button>
+    <div class="filter-options" id="website-filter-options" role="listbox" aria-label="URL included" hidden>
+      <button type="button" class="filter-option" role="option" tabindex="-1" data-value="" aria-selected="{{ 'true' if not selected_website else 'false' }}"><span>All</span><span class="filter-option-check" aria-hidden="true">✓</span></button>
+      <button type="button" class="filter-option" role="option" tabindex="-1" data-value="with_url" aria-selected="{{ 'true' if selected_website == 'with_url' else 'false' }}"><span>Yes</span><span class="filter-option-check" aria-hidden="true">✓</span></button>
+      <button type="button" class="filter-option" role="option" tabindex="-1" data-value="without_url" aria-selected="{{ 'true' if selected_website == 'without_url' else 'false' }}"><span>No</span><span class="filter-option-check" aria-hidden="true">✓</span></button>
+    </div>
+    <select class="auth-method-native" name="website" tabindex="-1" aria-hidden="true"><option value="" {% if not selected_website %}selected{% endif %}>All</option><option value="with_url" {% if selected_website == 'with_url' %}selected{% endif %}>Yes</option><option value="without_url" {% if selected_website == 'without_url' %}selected{% endif %}>No</option></select>
+  </div>
   <button type="submit">Search</button>
 </form>
+</dialog>
+<script>
+  (() => {
+    const dialog = document.getElementById('search-dialog');
+    const opener = document.getElementById('open-search-dialog');
+    const close = document.querySelector('.search-dialog-close');
+    const input = document.getElementById('vault-search');
+    if (!dialog || !opener || !close || !input) return;
+    const open = () => {
+      if (!dialog.open) dialog.showModal();
+      requestAnimationFrame(() => input.focus());
+    };
+    opener.addEventListener('click', open);
+    close.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+    document.addEventListener('keydown', event => {
+      if (event.ctrlKey && !event.altKey && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        if (dialog.open) input.focus();
+        else open();
+      }
+    });
+  })();
+</script>
 {% if entries %}
   <section class="entry-list">
   {% for item in entries %}
     <article class="entry-card">
       <div class="site-icon"><span class="site-initial">{{ item.site[:1]|upper }}</span>{% if item.site_icon_url %}<img class="site-logo{% if item.site_icon_url.endswith('stonescape.png') %} site-logo-stonescape{% endif %}" src="{{ item.site_icon_url }}" alt="" aria-hidden="true" loading="lazy" referrerpolicy="no-referrer" onload="this.previousElementSibling.hidden=true" onerror="this.remove()">{% endif %}</div>
       <div class="entry-main"><div class="site-title-line"><h2>{{ item.site }}</h2>{% if item.site_href %}<a class="site-url-chip" href="{{ item.site_href }}" target="_blank" rel="noopener noreferrer" title="{{ item.site_url }}">↗ {{ item.site_url }}</a>{% elif item.site_url %}<span class="site-url-chip">{{ item.site_url }}</span>{% endif %}<span class="verification-badge {{ 'verified' if item.verified else 'unverified' }}"><span class="verification-mark">{{ '✓' if item.verified else '×' }}</span>{{ 'Verified' if item.verified else 'Unverified' }}</span></div>{% if item.login_ids %}<div class="login-id-list">{% for identifier in item.login_ids %}<span class="login-id-chip"><span class="login-id-type">{{ identifier.type or 'Login ID' }}</span><span class="login-id-value">{{ identifier.value }}</span><button type="button" class="copy-identifier" data-password="{{ identifier.value }}" aria-label="Copy {{ identifier.type or 'Login ID' }}" title="Copy login ID"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button></span>{% endfor %}</div>{% elif item.username %}<div class="entry-username">{{ item.username }}<button type="button" class="copy-identifier" data-password="{{ item.username }}" aria-label="Copy username" title="Copy username"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button></div>{% else %}<div class="entry-username">No login ID</div>{% endif %}{% if item.tags %}<div class="tag-list">{% for tag in item.tags %}<a class="tag" href="{{ url_for('index', q=query, tag=tag) }}">{{ tag }}</a>{% endfor %}</div>{% endif %}{% if item.notes %}<p class="entry-notes">{{ item.notes }}</p>{% endif %}</div>
-      <div class="entry-password">{% if item.password_required is not defined or item.password_required %}{% if item.auth_method == 'password_and_2fa' %}<span class="muted small">PASSWORD + 2FA</span>{% else %}<span class="muted small">PASSWORD</span>{% endif %}<span class="masked">••••••••••••</span><button type="button" class="reveal" data-password="{{ item.password }}" onclick="const p=this.previousElementSibling; const shown=p.dataset.shown==='1'; p.textContent=shown?'••••••••••••':this.dataset.password; p.dataset.shown=shown?'0':'1'; this.textContent=shown?'Show':'Hide';">Show</button><button type="button" class="copy-password" data-password="{{ item.password }}" aria-label="Copy password for {{ item.site }}" title="Copy password"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button>{% else %}<span class="muted small">SIGN-IN</span><span class="passwordless-indicator">2FA only · no password</span>{% endif %}</div>
+      <div class="entry-password">{% if item.password_required is not defined or item.password_required %}<button type="button" class="password-open-trigger" data-password="{{ item.password }}" data-site="{{ item.site }}" data-login-ids="{{ item.get('login_ids', [])|tojson|forceescape }}" data-username="{{ item.username or '' }}" aria-haspopup="dialog" aria-controls="password-viewer" aria-label="View credentials for {{ item.site }}">{% if item.auth_method == 'password_and_2fa' %}<span class="muted small">PASSWORD + 2FA</span>{% else %}<span class="muted small">PASSWORD</span>{% endif %}<span class="masked">••••••••••••</span><span class="password-open-hint" aria-hidden="true">View &amp; copy&nbsp; ↗</span></button>{% else %}<span class="muted small">{{ 'GOOGLE SIGN-IN' if item.auth_method == 'google_sign_in' else ('MOBILE OTP' if item.auth_method == 'mobile_otp' else 'SIGN-IN') }}</span><span class="passwordless-indicator">{{ 'Sign in with Google · no site password' if item.auth_method == 'google_sign_in' else ('Mobile number OTP · no password' if item.auth_method == 'mobile_otp' else '2FA only · no password') }}</span>{% endif %}</div>
       {% if item.custom_fields %}<details class="extra-fields"><summary>Additional fields · {{ item.custom_fields|length }}</summary><div class="extra-field-list">{% for field in item.custom_fields %}{% set is_hidden = field.hidden if field.hidden is defined else true %}<div class="extra-field"><span class="extra-field-name">{{ field.name }}</span><div class="extra-field-value"><span class="masked" data-shown="{{ '0' if is_hidden else '1' }}">{{ '••••••••' if is_hidden else field.value }}</span><button type="button" class="reveal" data-password="{{ field.value }}" onclick="const p=this.previousElementSibling; const shown=p.dataset.shown==='1'; p.textContent=shown?'••••••••':this.dataset.password; p.dataset.shown=shown?'0':'1'; this.textContent=shown?'Show':'Hide';">{{ 'Show' if is_hidden else 'Hide' }}</button><button type="button" class="copy-password" data-password="{{ field.value }}" aria-label="Copy {{ field.name }}" title="Copy value"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button></div></div>{% endfor %}</div></details>{% endif %}
       <div class="entry-actions"><a class="icon-button" href="{{ url_for('edit_entry', entry_id=item.id) }}" aria-label="Edit {{ item.site }}">✎</a><form method="post" action="{{ url_for('delete_entry', entry_id=item.id) }}" onsubmit="return confirm('Delete the password for {{ item.site|e }}?')"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="icon-button danger" type="submit" aria-label="Delete {{ item.site }}">×</button></form></div>
     </article>
   {% endfor %}
   </section>
 {% else %}
-  <section class="empty-state"><div class="empty-icon">⌑</div><h2>{{ 'No matches found' if query or selected_tag or selected_status else 'Your vault is ready' }}</h2><p class="muted">{{ 'Try changing or clearing your filters.' if query or selected_tag or selected_status else 'Add your first password to keep it safely in one place.' }}</p>{% if not query and not selected_tag and not selected_status %}<a class="primary" href="{{ url_for('add_entry') }}">Add your first password <span>→</span></a>{% endif %}</section>
+  <section class="empty-state"><div class="empty-icon">⌑</div><h2>{{ 'No matches found' if query or selected_tag or selected_status or selected_website else 'Your vault is ready' }}</h2><p class="muted">{{ 'Try changing or clearing your filters.' if query or selected_tag or selected_status or selected_website else 'Add your first password to keep it safely in one place.' }}</p>{% if not query and not selected_tag and not selected_status and not selected_website %}<a class="primary" href="{{ url_for('add_entry') }}">Add your first password <span>→</span></a>{% endif %}</section>
 {% endif %}
+<dialog class="credential-viewer" id="password-viewer" aria-labelledby="password-viewer-title">
+  <button type="button" class="credential-viewer-close" aria-label="Close password viewer">×</button>
+  <div class="eyebrow">CREDENTIAL DETAILS</div>
+  <h2 id="password-viewer-title"></h2>
+  <p class="muted">View or copy the login details and password.</p>
+  <section class="credential-login-section" id="credential-login-section" hidden>
+    <h3>Login credentials</h3>
+    <div class="credential-login-list" id="credential-login-list"></div>
+  </section>
+  <label for="password-viewer-value">Password</label>
+  <div class="credential-viewer-row">
+    <input id="password-viewer-value" type="password" readonly autocomplete="off" aria-label="Password">
+    <button type="button" class="credential-viewer-show" aria-pressed="false">Show</button>
+    <button type="button" class="copy-password" id="password-viewer-copy" aria-label="Copy password" title="Copy password" data-password=""><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button>
+  </div>
+</dialog>
+<script>
+  (() => {
+    const dialog = document.getElementById('password-viewer');
+    const title = document.getElementById('password-viewer-title');
+    const value = document.getElementById('password-viewer-value');
+    const show = document.querySelector('.credential-viewer-show');
+    const copy = document.getElementById('password-viewer-copy');
+    const close = document.querySelector('.credential-viewer-close');
+    const loginSection = document.getElementById('credential-login-section');
+    const loginList = document.getElementById('credential-login-list');
+    if (!dialog || !title || !value || !show || !copy || !close || !loginSection || !loginList) return;
+    document.querySelectorAll('.password-open-trigger').forEach(trigger => {
+      trigger.addEventListener('click', () => {
+        title.textContent = trigger.dataset.site || 'Password';
+        value.value = trigger.dataset.password || '';
+        let identifiers = [];
+        try { identifiers = JSON.parse(trigger.dataset.loginIds || '[]'); } catch (_) {}
+        if (!Array.isArray(identifiers) || !identifiers.length) {
+          identifiers = trigger.dataset.username ? [{ type: 'Username', value: trigger.dataset.username }] : [];
+        }
+        loginList.replaceChildren();
+        identifiers.filter(item => item && typeof item.value === 'string' && item.value).forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'credential-login-item';
+          const details = document.createElement('div');
+          details.className = 'credential-login-text';
+          const kind = document.createElement('span');
+          kind.className = 'credential-login-type';
+          kind.textContent = item.type || 'Login ID';
+          const identifier = document.createElement('span');
+          identifier.className = 'credential-login-value';
+          identifier.textContent = item.value;
+          const copyIdentifier = document.createElement('button');
+          copyIdentifier.type = 'button';
+          copyIdentifier.className = 'credential-copy-login';
+          copyIdentifier.textContent = 'Copy';
+          copyIdentifier.setAttribute('aria-label', `Copy ${item.type || 'login ID'}`);
+          copyIdentifier.addEventListener('click', async () => {
+            try {
+              if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(item.value);
+              else {
+                const helper = document.createElement('textarea');
+                helper.value = item.value;
+                helper.style.position = 'fixed'; helper.style.opacity = '0';
+                document.body.appendChild(helper); helper.select();
+                const copied = document.execCommand('copy'); helper.remove();
+                if (!copied) throw new Error('Copy failed');
+              }
+              copyIdentifier.textContent = 'Copied';
+              setTimeout(() => { copyIdentifier.textContent = 'Copy'; }, 1200);
+            } catch (_) { copyIdentifier.textContent = 'Unavailable'; }
+          });
+          details.append(kind, identifier);
+          row.append(details, copyIdentifier);
+          loginList.append(row);
+        });
+        loginSection.hidden = !loginList.children.length;
+        value.type = 'password';
+        show.textContent = 'Show';
+        show.setAttribute('aria-pressed', 'false');
+        copy.dataset.password = value.value;
+        dialog.showModal();
+      });
+    });
+    show.addEventListener('click', () => {
+      const revealed = value.type === 'text';
+      value.type = revealed ? 'password' : 'text';
+      show.textContent = revealed ? 'Show' : 'Hide';
+      show.setAttribute('aria-pressed', String(!revealed));
+    });
+    close.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => {
+      if (event.target === dialog) dialog.close();
+    });
+    dialog.addEventListener('close', () => {
+      value.value = '';
+      copy.dataset.password = '';
+      loginList.replaceChildren();
+      loginSection.hidden = true;
+      value.type = 'password';
+      show.textContent = 'Show';
+      show.setAttribute('aria-pressed', 'false');
+    });
+  })();
+</script>
+<script>
+  (() => {
+    const pickers = [...document.querySelectorAll('.filter-picker')];
+    pickers.forEach(picker => {
+      const trigger = picker.querySelector('.filter-trigger');
+      const menu = picker.querySelector('.filter-options');
+      const select = picker.querySelector('.auth-method-native');
+      const label = picker.querySelector('.filter-current-label');
+      const options = [...picker.querySelectorAll('.filter-option')];
+      if (!trigger || !menu || !select || !options.length) return;
+      let closeTimer;
+      const selectedOption = () => options.find(option => option.dataset.value === select.value) || options[0];
+      const close = (returnFocus = false) => {
+        clearTimeout(closeTimer);
+        picker.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+        menu.classList.remove('is-open');
+        closeTimer = setTimeout(() => { menu.hidden = true; }, 170);
+        if (returnFocus) trigger.focus();
+      };
+      const open = () => {
+        clearTimeout(closeTimer);
+        document.querySelectorAll('.filter-picker.is-open').forEach(other => {
+          if (other !== picker) other.querySelector('.filter-trigger')?.click();
+        });
+        menu.hidden = false;
+        picker.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+        requestAnimationFrame(() => {
+          menu.classList.add('is-open');
+          selectedOption().focus();
+        });
+      };
+      const choose = option => {
+        select.value = option.dataset.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        options.forEach(item => item.setAttribute('aria-selected', String(item === option)));
+        label.textContent = (label.dataset.prefix || '') + (option.querySelector('span')?.textContent.trim() || option.textContent.trim());
+        close(true);
+      };
+      trigger.addEventListener('click', () => picker.classList.contains('is-open') ? close() : open());
+      trigger.addEventListener('keydown', event => {
+        if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
+          event.preventDefault();
+          if (!picker.classList.contains('is-open')) open();
+        }
+      });
+      options.forEach((option, index) => {
+        option.addEventListener('mousedown', event => event.preventDefault());
+        option.addEventListener('click', () => choose(option));
+        option.addEventListener('keydown', event => {
+          let next = null;
+          if (event.key === 'ArrowDown') next = options[(index + 1) % options.length];
+          else if (event.key === 'ArrowUp') next = options[(index - 1 + options.length) % options.length];
+          else if (event.key === 'Home') next = options[0];
+          else if (event.key === 'End') next = options[options.length - 1];
+          else if (event.key === 'Escape') { event.preventDefault(); close(true); }
+          else if (event.key === 'Tab') close();
+          else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(option); }
+          if (next) { event.preventDefault(); next.focus(); }
+        });
+      });
+      document.addEventListener('click', event => { if (!picker.contains(event.target) && picker.classList.contains('is-open')) close(); });
+    });
+  })();
+</script>
 <script>
   (() => {
     const fileInput = document.querySelector('.import-form input[type="file"]');

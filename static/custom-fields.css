@@ -160,6 +160,54 @@ html[data-theme="dark"] .verification-option-verified[aria-selected="true"]{back
 html[data-theme="dark"] .verification-option-unverified .auth-option-check{color:#ffaaa3}
 html[data-theme="dark"] .verification-option-verified .auth-option-check{color:#8de0aa}
 html[data-theme="dark"] .passwordless-indicator{color:#9bbaff}
+.password-open-trigger{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px 10px;width:100%;min-width:0;padding:10px 12px;border:0;border-radius:11px;background:#f4f7fc;color:#24344e;text-align:left;cursor:pointer;box-shadow:inset 0 0 0 1px #e2e9f3;transition:background .15s ease,box-shadow .15s ease,transform .15s ease}
+.password-open-trigger:hover{background:#eaf1ff;box-shadow:inset 0 0 0 1px #cbdaf2;transform:translateY(-1px)}
+.password-open-trigger:focus-visible{outline:2px solid #6b91df;outline-offset:2px}
+.password-open-trigger .small{grid-column:1/-1;font-size:9px;font-weight:700;letter-spacing:1px}
+.password-open-trigger .masked{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.password-open-hint{color:#326bd6;font:600 10px 'DM Sans';white-space:nowrap}
+.credential-viewer{position:fixed;inset:0;width:min(460px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 48px);margin:auto;padding:28px;border:0;border-radius:18px;background:#fff;color:#24344e;box-shadow:0 24px 70px #17284240;overflow:auto}
+.credential-viewer::backdrop{background:#14223880;backdrop-filter:blur(3px)}
+.credential-viewer[open]{animation:credential-viewer-in .18s ease-out}
+@keyframes credential-viewer-in{from{opacity:0;transform:translateY(7px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+.credential-viewer .eyebrow{margin:0 0 8px;color:#326bd6}
+.credential-viewer h2{margin:0 38px 5px 0;font-size:21px;overflow-wrap:anywhere}
+.credential-viewer>.muted{margin-bottom:22px;font-size:12px}
+.credential-login-section{display:grid;gap:8px;margin:0 0 18px}
+.credential-login-section[hidden]{display:none}
+.credential-login-section h3{margin:0;color:#52637b;font:700 11px 'DM Sans'}
+.credential-login-list{display:grid;gap:7px}
+.credential-login-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:9px 10px;border-radius:10px;background:#f2f6fd;box-shadow:inset 0 0 0 1px #e0e8f4}
+.credential-login-text{display:grid;gap:3px;min-width:0}
+.credential-login-type{color:#326bd6;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.credential-login-value{overflow-wrap:anywhere;color:#34445d;font-size:12px}
+.credential-copy-login{flex:none;border:0;border-radius:7px;background:#e5edfb;color:#315fae;padding:7px 9px;font:600 10px 'DM Sans';cursor:pointer}
+.credential-copy-login:hover{background:#d9e5fb}
+.credential-viewer>label{display:block;margin-bottom:8px;color:#52637b;font-size:11px;font-weight:700}
+.credential-viewer-row{display:flex;align-items:center;gap:8px;padding:8px;border-radius:12px;background:#f2f6fd;box-shadow:inset 0 0 0 1px #e0e8f4}
+.credential-viewer-row input{flex:1;min-width:0;padding:9px 8px;border:0;border-radius:7px;background:transparent;color:#27364b;font:13px 'DM Sans';outline:0}
+.credential-viewer-show{border:0;border-radius:7px;background:#e5edfb;color:#315fae;padding:8px 10px;font:600 11px 'DM Sans';cursor:pointer}
+.credential-viewer-show:hover{background:#d9e5fb}
+.credential-viewer-row .copy-password{flex:none;width:34px;height:34px}
+.credential-viewer-close{position:absolute;top:12px;right:12px;display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:9px;background:#f2f6fd;color:#60728d;font:23px/1 'DM Sans';cursor:pointer}
+.credential-viewer-close:hover{background:#e6edf8;color:#314b72}
+html[data-theme="dark"] .password-open-trigger{background:#111b2a;color:#dce6f5;box-shadow:inset 0 0 0 1px #293951}
+html[data-theme="dark"] .password-open-trigger:hover{background:#15243a;box-shadow:inset 0 0 0 1px #405779}
+html[data-theme="dark"] .password-open-hint{color:#9bbaff}
+html[data-theme="dark"] .credential-viewer{background:#151f2e;color:#e3ebf7;box-shadow:0 24px 70px #0009}
+html[data-theme="dark"] .credential-viewer .muted,html[data-theme="dark"] .credential-viewer>label{color:#a8b8d0}
+html[data-theme="dark"] .credential-login-section h3{color:#a8b8d0}
+html[data-theme="dark"] .credential-login-item{background:#101927;box-shadow:inset 0 0 0 1px #34445c}
+html[data-theme="dark"] .credential-login-value{color:#dce6f5}
+html[data-theme="dark"] .credential-copy-login{background:#233451;color:#bad0ff}
+html[data-theme="dark"] .credential-copy-login:hover{background:#2c4265}
+html[data-theme="dark"] .credential-viewer-row{background:#101927;box-shadow:inset 0 0 0 1px #34445c}
+html[data-theme="dark"] .credential-viewer-row input{color:#e3ebf7}
+html[data-theme="dark"] .credential-viewer-show{background:#233451;color:#bad0ff}
+html[data-theme="dark"] .credential-viewer-show:hover,html[data-theme="dark"] .credential-viewer-close{background:#1b2a40;color:#cbd8ec}
+html[data-theme="dark"] .credential-viewer-close:hover{background:#263956;color:#edf3ff}
+@media(max-width:520px){.credential-viewer{max-height:calc(100vh - 32px);overflow:auto;padding:24px 19px;border-radius:15px}.password-open-hint{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.password-open-trigger,.credential-viewer[open]{transition:none;animation:none}}
 html[data-theme="dark"] .field-visibility{color:#9bbaff}
 html[data-theme="dark"] .remove-field{color:#9eacc2}
 html[data-theme="dark"] .remove-field:hover{background:#482926;color:#ffaaa3}

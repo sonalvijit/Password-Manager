@@ -29,7 +29,7 @@
         <span class="theme-icon moon-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.3 15.4A8.5 8.5 0 0 1 8.6 3.7 8.5 8.5 0 1 0 20.3 15.4Z"/></svg></span>
       </button>
     {% if session.get('vault_token') %}
-      <a class="quiet-button generator-nav" href="{{ url_for('password_generator') }}">Password generator</a>
+      <button class="quiet-button generator-nav" id="open-password-generator" type="button" aria-haspopup="dialog" aria-controls="password-generator-dialog"><span>Password generator</span><kbd>Ctrl X</kbd></button>
       <form method="post" action="{{ url_for('logout') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button class="quiet-button" type="submit">Lock vault</button>
@@ -43,6 +43,7 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
+  {% if session.get('vault_token') %}{% include '_password_generator.html' %}{% endif %}
   <footer>Private by design · Your vault is encrypted on this device.</footer>
   <script>
     (() => {
