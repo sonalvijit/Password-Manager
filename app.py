@@ -27,7 +27,12 @@ UNLOCK_LOCK = threading.Lock()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", MAX_CONTENT_LENGTH=10 * 1024 * 1024)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    MAX_CONTENT_LENGTH=10 * 1024 * 1024,
+    TEMPLATES_AUTO_RELOAD=True,
+)
 
 
 def connect_db():
@@ -142,18 +147,33 @@ def get_form_login_ids(form):
 def safe_http_url(value):
     if not isinstance(value, str) or not value.strip():
         return ""
+    candidate = value.strip()
+    if candidate.startswith("//"):
+        candidate = f"https:{candidate}"
+    elif not candidate.casefold().startswith(("http://", "https://")):
+        candidate = f"https://{candidate.lstrip('/')}"
     try:
-        parsed = urlsplit(value.strip())
-        if parsed.scheme.lower() in ("http", "https") and parsed.hostname:
-            return value.strip()
+        parsed = urlsplit(candidate)
+        if (
+            parsed.scheme.lower() in ("http", "https")
+            and parsed.hostname
+            and not parsed.username
+            and not parsed.password
+            and not any(character.isspace() for character in parsed.netloc)
+        ):
+            parsed.port  # Validate an optional port before using this URL in a link.
+            return candidate
     except ValueError:
         pass
     return ""
 
 
-def site_favicon_url(value):
+def site_favicon_url(value, site_name=""):
     safe_url = safe_http_url(value)
     if not safe_url:
+        normalized_site = "".join(character for character in str(site_name).casefold() if character.isalnum())
+        if "jio" in normalized_site:
+            return "/static/site-icons/jio.png"
         return ""
     try:
         parsed = urlsplit(safe_url)
@@ -176,7 +196,7 @@ def site_favicon_url(value):
         "hacker101.com": "hackerone.svg",
         "hackerone.com": "hackerone.svg",
         "riotgames.com": "riotgames.svg",
-        "comix.to": "comix.svg",
+        "comix.to": "comix.png",
         "mangafire.to": "mangafire.svg",
         "bsky.app": "bluesky.svg",
         "bsky.social": "bluesky.svg",
@@ -200,6 +220,17 @@ def site_favicon_url(value):
         "campussoft.net": "campussoft.ico",
         "discord.com": "discord.ico",
         "discordapp.com": "discord.ico",
+        "dspmuranchi.in": "dspmu.png",
+        "dspmuranchi.ac.in": "dspmu.png",
+        "ncs.gov.in": "ncs.jpg",
+        "hentai20.io": "hentai20.jpg",
+        "superdatascience.com": "superdatascience.jpg",
+        "rrbapply.gov.in": "rrb.png",
+        "irctc.co.in": "irctc.svg",
+        "crunchyroll.com": "crunchyroll.png",
+        "jio.com": "jio.png",
+        "nhentai.net": "nhentai.png",
+        "donotaku.com": "donotaku.svg",
     }
     for domain, filename in local_favicons.items():
         if hostname_value == domain or hostname_value.endswith(f".{domain}"):
@@ -268,6 +299,8 @@ def normalize_import_record(record):
         auth_method = "password_only"
     elif auth_method in ("passwordand2fa", "password_and_2fa", "password_and_two_factor", "password_2fa"):
         auth_method = "password_and_2fa"
+    elif auth_method in ("password_and_sign_in_with_google", "password_google", "password_google_sign_in", "password_and_google"):
+        auth_method = "password_and_google"
     elif auth_method in ("google", "google_sign_in", "sign_in_with_google", "google_sso", "sso_google"):
         auth_method = "google_sign_in"
     elif auth_method in ("mobile_otp", "mobile_number_otp", "phone_otp", "phone_number_otp", "sms_otp", "otp_mobile"):
@@ -286,7 +319,7 @@ def normalize_import_record(record):
         password_required = True
     if not password_required and auth_method not in ("google_sign_in", "mobile_otp"):
         auth_method = "two_factor_only"
-    elif password_required and auth_method not in ("password_and_2fa", "google_sign_in", "mobile_otp"):
+    elif password_required and auth_method not in ("password_and_2fa", "password_and_google", "google_sign_in", "mobile_otp"):
         auth_method = "password_only"
     if not site or (password_required and not password.strip()):
         return None
@@ -479,7 +512,7 @@ def index():
                 "id": row["id"], **item,
                 "verified": item.get("verified") is True,
                 "site_href": safe_http_url(item.get("site_url", "")),
-                "site_icon_url": site_favicon_url(item.get("site_url", "")),
+                "site_icon_url": site_favicon_url(item.get("site_url", ""), item.get("site", "")),
                 "updated_at": row["updated_at"],
             })
     return render_template(
@@ -569,9 +602,9 @@ def save_entry(fernet, values, entry_id=None):
     import json
     payload = {key: values.get(key, "").strip() for key in ("site", "site_url", "username", "notes")}
     payload["auth_method"] = values.get("auth_method", "password_only")
-    if payload["auth_method"] not in ("password_only", "password_and_2fa", "two_factor_only", "google_sign_in", "mobile_otp"):
+    if payload["auth_method"] not in ("password_only", "password_and_2fa", "password_and_google", "two_factor_only", "google_sign_in", "mobile_otp"):
         payload["auth_method"] = "password_only"
-    payload["password_required"] = payload["auth_method"] in ("password_only", "password_and_2fa")
+    payload["password_required"] = payload["auth_method"] in ("password_only", "password_and_2fa", "password_and_google")
     payload["password"] = values.get("password", "") if payload["password_required"] else ""
     payload["verified"] = entry_id is not None and values.get("verification_status") == "verified"
     payload["login_ids"] = get_form_login_ids(values)
@@ -772,4 +805,6 @@ if __name__ == "__main__":
     url = f"http://127.0.0.1:{port}"
     # Give Flask's development server a moment to bind before opening the page.
     threading.Timer(0.8, lambda: webbrowser.open(url)).start()
-    app.run(host="127.0.0.1", port=port, debug=True, use_reloader=False)
+    print(f"Local access: {url}")
+    print(f"LAN access: http://<this-computer's IPv4 address>:{port}")
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)

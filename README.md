@@ -1,6 +1,6 @@
 # Keybox
 
-A basic local password manager built with Python, Flask, and SQLite. It supports creating a vault, unlocking it, storing a website/app name and optional URL, keeping multiple login identifiers per entry, password-only, password-plus-2FA, or 2FA-only sign-in records, generating secure passwords, adding any number of custom fields, manually marking passwords verified or unverified, deleting entries, importing JSON or CSV files, exporting the vault as JSON or CSV, searching websites, URLs, login identifiers, tags, notes, and custom fields, filtering entries by tag, and switching between light and dark themes.
+A basic local password manager built with Python, Flask, and SQLite. It supports creating a vault, unlocking it, storing a website/app name and optional URL, keeping multiple login identifiers per entry, password-only, password-plus-2FA, password-plus-Google, 2FA-only, Google-only, or mobile OTP sign-in records, generating secure passwords, adding any number of custom fields, manually marking passwords verified or unverified, deleting entries, importing JSON or CSV files, exporting the vault as JSON or CSV, searching websites, URLs, login identifiers, tags, notes, and custom fields, filtering entries by tag, and switching between light and dark themes.
 
 ## Screenshot
 
@@ -12,7 +12,8 @@ A basic local password manager built with Python, Flask, and SQLite. It supports
 2. Install the dependencies: `pip install -r requirements.txt`
 3. Start the app: `python app.py` (it opens the default browser automatically).
 4. If the browser does not open, visit `http://127.0.0.1:54327` and create a master password.
+5. To connect from another device on the same trusted Wi-Fi/LAN, find this computer's IPv4 address with `ipconfig` on Windows, then open `http://<IPv4-address>:54327` on that device. Allow Python through Windows Firewall on **Private networks** if prompted.
 
 The SQLite database is created as `passwords.sqlite3` in this folder. Set `PASSWORD_MANAGER_DB` to use another location. The master password must be at least 4 characters. Password entries, website URLs, login identifiers, tags, notes, and custom fields are encrypted together with Fernet; a key is derived from the master password using PBKDF2-HMAC-SHA256. The encryption key exists in process memory while the vault is unlocked. Restarting the app locks all sessions. There is no master-password recovery, so keep a secure backup of the database and remember the master password.
 
-Flask's interactive debugger is enabled for local development. It can expose powerful access if reachable by others, so keep the app on localhost and never expose the development server directly to the internet. For a public deployment, disable the debugger and add production session management, HTTPS, rate limiting, and operational key handling.
+The app listens on the local network so other devices on the same trusted Wi-Fi/LAN can connect. Flask's interactive debugger is disabled because it can expose powerful access. LAN traffic uses plain HTTP, so use this only on a trusted private network; do not forward the port or expose the development server to the internet. For a public deployment, use a production server, HTTPS, rate limiting, and production session/key management.

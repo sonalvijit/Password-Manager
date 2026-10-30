@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ heading }}{% endblock %}
 {% block content %}
-<a class="back-link" href="{{ url_for('index') }}">← Back to vault</a>
+<div class="form-back-row"><a class="back-link" href="{{ url_for('index') }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg><span>Back to vault</span></a></div>
 <section class="form-card">
   <div class="eyebrow">VAULT ENTRY</div><h1>{{ heading }}</h1>
   <form method="post" class="stack">
@@ -10,7 +10,7 @@
       <div class="suggestion-autocomplete" data-source="sites"><input id="site-input" name="site" placeholder="e.g. example.com" value="{{ entry.site if entry else '' }}" required autofocus autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="site-suggestions"><div id="site-suggestions" class="suggestions-menu" role="listbox" hidden></div></div>
     </label>
     <label>Website URL <span class="optional">Optional</span>
-      <div class="suggestion-autocomplete" data-source="urls"><input id="url-input" name="site_url" type="url" placeholder="https://example.com" value="{{ entry.site_url if entry else '' }}" autocomplete="url" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="url-suggestions"><div id="url-suggestions" class="suggestions-menu" role="listbox" hidden></div></div>
+      <div class="suggestion-autocomplete" data-source="urls"><input id="url-input" name="site_url" type="text" inputmode="url" placeholder="example.com" value="{{ entry.site_url if entry else '' }}" autocomplete="url" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="url-suggestions"><div id="url-suggestions" class="suggestions-menu" role="listbox" hidden></div></div>
     </label>
     <section class="login-identifiers-editor">
       <div class="login-identifiers-heading"><div><h2>Login identifiers</h2><p class="muted">Add the email, phone, username, or IDs used to sign in.</p></div><button class="add-field" id="add-login-id" type="button">＋ Add ID</button></div>
@@ -18,14 +18,14 @@
         {% if entry and entry.login_ids %}
           {% for identifier in entry.login_ids %}
           <div class="login-id-row">
-            <input name="login_id_type" aria-label="Identifier type" placeholder="Identifier type (optional)" value="{{ identifier.type or 'Login ID' }}">
+            <div class="suggestion-autocomplete identifier-type-autocomplete" data-source="identifierTypes"><input id="login-type-{{ loop.index0 }}" name="login_id_type" autocomplete="off" aria-label="Identifier type" placeholder="Choose or type a login ID" value="{{ identifier.type or 'Login ID' }}" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="login-type-suggestions-{{ loop.index0 }}"><div id="login-type-suggestions-{{ loop.index0 }}" class="suggestions-menu" role="listbox" hidden></div></div>
             <div class="suggestion-autocomplete" data-source="usernames"><input id="login-id-{{ loop.index0 }}" name="login_id_value" autocomplete="off" aria-label="Login identifier" placeholder="Email, phone, username, or ID" value="{{ identifier.value }}" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="login-suggestions-{{ loop.index0 }}"><div id="login-suggestions-{{ loop.index0 }}" class="suggestions-menu" role="listbox" hidden></div></div>
             <button type="button" class="remove-field remove-login-id" aria-label="Remove login ID">×</button>
           </div>
           {% endfor %}
         {% else %}
           <div class="login-id-row">
-            <input name="login_id_type" aria-label="Identifier type" placeholder="Identifier type (optional)" value="Login ID">
+            <div class="suggestion-autocomplete identifier-type-autocomplete" data-source="identifierTypes"><input id="login-type-0" name="login_id_type" autocomplete="off" aria-label="Identifier type" placeholder="Choose or type a login ID" value="Login ID" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="login-type-suggestions-0"><div id="login-type-suggestions-0" class="suggestions-menu" role="listbox" hidden></div></div>
             <div class="suggestion-autocomplete" data-source="usernames"><input id="login-id-0" name="login_id_value" autocomplete="off" aria-label="Login identifier" placeholder="Email, phone, username, or ID" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="login-suggestions-0"><div id="login-suggestions-0" class="suggestions-menu" role="listbox" hidden></div></div>
             <button type="button" class="remove-field remove-login-id" aria-label="Remove login ID">×</button>
           </div>
@@ -33,18 +33,19 @@
       </div>
     </section>
     {% set selected_auth_method = entry.get('auth_method', '') if entry else 'password_only' %}
-    {% if selected_auth_method not in ['password_only', 'password_and_2fa', 'two_factor_only', 'google_sign_in', 'mobile_otp'] %}
+    {% if selected_auth_method not in ['password_only', 'password_and_2fa', 'password_and_google', 'two_factor_only', 'google_sign_in', 'mobile_otp'] %}
       {% set selected_auth_method = 'two_factor_only' if entry and entry.get('password_required', true) == false else 'password_only' %}
     {% endif %}
     <div class="auth-method-field"><span>Sign-in requirement</span>
       <div class="auth-method-picker">
         <button type="button" class="auth-method-trigger" id="auth-method-trigger" role="combobox" aria-label="Sign-in requirement" aria-haspopup="listbox" aria-expanded="false" aria-controls="auth-method-options">
-          <span id="auth-method-label">{% if selected_auth_method == 'password_and_2fa' %}Password + 2FA{% elif selected_auth_method == 'two_factor_only' %}2FA only{% elif selected_auth_method == 'google_sign_in' %}Sign in with Google{% elif selected_auth_method == 'mobile_otp' %}Mobile number OTP{% else %}Password only{% endif %}</span>
+          <span id="auth-method-label">{% if selected_auth_method == 'password_and_2fa' %}Password + 2FA{% elif selected_auth_method == 'password_and_google' %}Password + Sign in with Google{% elif selected_auth_method == 'two_factor_only' %}2FA only{% elif selected_auth_method == 'google_sign_in' %}Sign in with Google{% elif selected_auth_method == 'mobile_otp' %}Mobile number OTP{% else %}Password only{% endif %}</span>
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg>
         </button>
         <div class="auth-method-options" id="auth-method-options" role="listbox" aria-label="Sign-in requirement" hidden>
           <button type="button" class="auth-method-option" role="option" tabindex="-1" data-value="password_only" aria-selected="{{ 'true' if selected_auth_method == 'password_only' else 'false' }}"><span class="auth-option-title">Password only</span><span class="auth-option-detail">Sign in with a password</span><span class="auth-option-check" aria-hidden="true">✓</span></button>
           <button type="button" class="auth-method-option" role="option" tabindex="-1" data-value="password_and_2fa" aria-selected="{{ 'true' if selected_auth_method == 'password_and_2fa' else 'false' }}"><span class="auth-option-title">Password + 2FA</span><span class="auth-option-detail">Password and a second verification step</span><span class="auth-option-check" aria-hidden="true">✓</span></button>
+          <button type="button" class="auth-method-option" role="option" tabindex="-1" data-value="password_and_google" aria-selected="{{ 'true' if selected_auth_method == 'password_and_google' else 'false' }}"><span class="auth-option-title">Password + Sign in with Google</span><span class="auth-option-detail">Use both a site password and Google sign-in</span><span class="auth-option-check" aria-hidden="true">✓</span></button>
           <button type="button" class="auth-method-option" role="option" tabindex="-1" data-value="two_factor_only" aria-selected="{{ 'true' if selected_auth_method == 'two_factor_only' else 'false' }}"><span class="auth-option-title">2FA only</span><span class="auth-option-detail">No password; sign in with a verification code</span><span class="auth-option-check" aria-hidden="true">✓</span></button>
           <button type="button" class="auth-method-option" role="option" tabindex="-1" data-value="google_sign_in" aria-selected="{{ 'true' if selected_auth_method == 'google_sign_in' else 'false' }}"><span class="auth-option-title">Sign in with Google</span><span class="auth-option-detail">Use your Google account; no site password</span><span class="auth-option-check" aria-hidden="true">✓</span></button>
           <button type="button" class="auth-method-option" role="option" tabindex="-1" data-value="mobile_otp" aria-selected="{{ 'true' if selected_auth_method == 'mobile_otp' else 'false' }}"><span class="auth-option-title">Mobile number OTP</span><span class="auth-option-detail">Sign in with a code sent to your phone</span><span class="auth-option-check" aria-hidden="true">✓</span></button>
@@ -52,6 +53,7 @@
         <select id="auth-method" name="auth_method" class="auth-method-native" tabindex="-1" aria-hidden="true">
           <option value="password_only" {% if selected_auth_method == 'password_only' %}selected{% endif %}>Password only</option>
           <option value="password_and_2fa" {% if selected_auth_method == 'password_and_2fa' %}selected{% endif %}>Password + 2FA</option>
+          <option value="password_and_google" {% if selected_auth_method == 'password_and_google' %}selected{% endif %}>Password + Sign in with Google</option>
           <option value="two_factor_only" {% if selected_auth_method == 'two_factor_only' %}selected{% endif %}>2FA only</option>
           <option value="google_sign_in" {% if selected_auth_method == 'google_sign_in' %}selected{% endif %}>Sign in with Google</option>
           <option value="mobile_otp" {% if selected_auth_method == 'mobile_otp' %}selected{% endif %}>Mobile number OTP</option>
@@ -112,7 +114,8 @@
       sites: {{ existing_sites|tojson }},
       urls: {{ existing_urls|tojson }},
       usernames: {{ existing_usernames|tojson }},
-      tags: {{ existing_tags|tojson }}
+      tags: {{ existing_tags|tojson }},
+      identifierTypes: ['Login ID', 'Email', 'Email ID', 'Username', 'Phone Number', 'Mobile Number', 'User ID', 'Registration Number', 'Aadhaar Number']
     };
     const attachSuggestionAutocomplete = container => {
       const input = container.querySelector('input');
@@ -138,13 +141,22 @@
         hide();
         input.focus();
       };
-      const update = () => {
+      const update = (showAllIdentifierTypes = false) => {
         const parts = isTags ? input.value.split(',') : [input.value];
         const current = parts[parts.length - 1].trim();
         const entered = isTags ? parts.slice(0, -1).map(tag => tag.trim().toLocaleLowerCase()) : [];
-        matches = current ? suggestionLists[container.dataset.source].filter(value =>
-          value.toLocaleLowerCase().startsWith(current.toLocaleLowerCase()) && !entered.includes(value.toLocaleLowerCase())
-        ).slice(0, 8) : [];
+        const source = container.dataset.source;
+        const urlQuery = current.toLocaleLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '');
+        matches = source === 'identifierTypes' && showAllIdentifierTypes
+          ? [...suggestionLists[source]]
+          : current ? suggestionLists[source].filter(value => {
+          const candidate = value.toLocaleLowerCase();
+          const normalizedCandidate = source === 'urls' ? candidate.replace(/^https?:\/\//, '').replace(/^www\./, '') : candidate;
+          const matched = source === 'urls'
+            ? Boolean(urlQuery) && normalizedCandidate.includes(urlQuery)
+            : candidate.startsWith(current.toLocaleLowerCase());
+          return matched && !entered.includes(candidate);
+        }).slice(0, 8) : [];
         menu.replaceChildren();
         activeIndex = -1;
         matches.forEach((value, index) => {
@@ -158,8 +170,8 @@
         menu.hidden = matches.length === 0;
         input.setAttribute('aria-expanded', String(matches.length > 0));
       };
-      input.addEventListener('input', update);
-      input.addEventListener('focus', update);
+      input.addEventListener('input', () => update(false));
+      input.addEventListener('focus', () => update(container.dataset.source === 'identifierTypes'));
       input.addEventListener('keydown', event => {
         if (menu.hidden || !matches.length) return;
         if (event.key === 'ArrowDown') { event.preventDefault(); activeIndex = (activeIndex + 1) % matches.length; paintActive(); }
@@ -282,9 +294,9 @@
       const id = nextId++;
       const row = document.createElement('div');
       row.className = 'login-id-row';
-      row.innerHTML = `<input name="login_id_type" aria-label="Identifier type" placeholder="Identifier type (optional)" value="Login ID"><div class="suggestion-autocomplete" data-source="usernames"><input id="login-id-${id}" name="login_id_value" autocomplete="off" aria-label="Login identifier" placeholder="Email, phone, username, or ID" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="login-suggestions-${id}"><div id="login-suggestions-${id}" class="suggestions-menu" role="listbox" hidden></div></div><button type="button" class="remove-field remove-login-id" aria-label="Remove login ID">×</button>`;
+      row.innerHTML = `<div class="suggestion-autocomplete identifier-type-autocomplete" data-source="identifierTypes"><input id="login-type-${id}" name="login_id_type" autocomplete="off" aria-label="Identifier type" placeholder="Choose or type a login ID" value="Login ID" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="login-type-suggestions-${id}"><div id="login-type-suggestions-${id}" class="suggestions-menu" role="listbox" hidden></div></div><div class="suggestion-autocomplete" data-source="usernames"><input id="login-id-${id}" name="login_id_value" autocomplete="off" aria-label="Login identifier" placeholder="Email, phone, username, or ID" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="login-suggestions-${id}"><div id="login-suggestions-${id}" class="suggestions-menu" role="listbox" hidden></div></div><button type="button" class="remove-field remove-login-id" aria-label="Remove login ID">×</button>`;
       rows.appendChild(row);
-      window.attachSuggestionAutocomplete(row.querySelector('.suggestion-autocomplete'));
+      row.querySelectorAll('.suggestion-autocomplete').forEach(window.attachSuggestionAutocomplete);
     };
     addButton.addEventListener('click', addRow);
     rows.addEventListener('click', event => {
